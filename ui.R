@@ -35,9 +35,14 @@ dashboardPage(
       headerPanel(
         'Analysis Output'),
       tabsetPanel(
-        tabPanel("Entropy Analysis",plotOutput("plot1"), tags$hr()),
-        tabPanel("Linear Model Analysis", plotOutput("plot2"),tags$hr(),plotOutput("plot3"),tags$hr(),verbatimTextOutput("summaryMLE")), 
-        tabPanel("Markov Model Graphs", plotOutput("plot4"),tags$hr(),plotOutput("plot5")),
+        tabPanel("Entropy Analysis",plotOutput("plot1"), tags$hr(),downloadButton('downloadPlot1', 'Download Plot')
+),
+        tabPanel("Linear Model Analysis", plotOutput("plot2"),downloadButton('downloadPlo2', 'Download Plot')
+,tags$hr(),plotOutput("plot3"),downloadButton('downloadPlot3', 'Download Plot'),tags$hr()
+,verbatimTextOutput("summaryMLE"),downloadButton('downloadData', 'Download Summary')
+), 
+        tabPanel("Markov Model Graphs", plotOutput("plot4"),downloadButton('downloadPlot4', 'Download Plot')
+,tags$hr(),plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')),
         tabPanel("Classification Analysis", selectInput("select", label = h4("Select Entropy Level for Classification"), 
-                                                        choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot6"),tags$hr(),plotOutput("plot7"))
+                                                        choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot'),tags$hr(),plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'))
       ))))

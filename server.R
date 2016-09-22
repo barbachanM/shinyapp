@@ -403,13 +403,13 @@ shinyServer(function(input, output, session) {
   
   #### Plots ###
   
-  output$plot1 = renderPlot({ 
+  plot1 = reactive({
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
       HT_Data = EntropyAnalysisHT()
       WT_Data = EntropyAnalysisWT()
       EntropyHTLM = HT_Data$Entropy
       EntropyWTLM = WT_Data$Entropy
-
+      
       HT = colMeans(EntropyHTLM)
       WT = colMeans(EntropyWTLM)
       
@@ -420,10 +420,20 @@ shinyServer(function(input, output, session) {
       
       
       return({ggplot(data=dataEntropy, aes(x=Level, y=Entropy, group=Group, colour=Group)) +
-               geom_line() +
-               geom_point()})
+          geom_line() +
+          geom_point()})
     }
     
+  })
+  output$plot1 = renderPlot({ 
+    print(plot1())
+    })
+  
+  
+  output$downloadPlot1 <- downloadHandler(
+    filename = function() { "EntropyAnalysis.png" },
+    content = function(file) {
+      ggsave(file, plot = plot1(), device = "png")
     })
   
   createMLEData = reactive({
@@ -480,8 +490,7 @@ shinyServer(function(input, output, session) {
     
   })
   
-  output$plot2 = renderPlot({ 
-    
+  plot2 = reactive({    
     if(!is.null(createMLEData())){
       MLEData = isolate(createMLEData())
       return({boxplot(Entropy ~ Genotype*Level,
@@ -489,75 +498,101 @@ shinyServer(function(input, output, session) {
                       las = 2,ylab ="Entropy", 
                       xlab ="Genotype*Level",cex.lab=1.3, cex.axis=0.6, cex.main=1.5,MLEData)})
     }
-      
-    else(stop("Upload folder") )
+    
+    else(stop("Upload folder") )})
+  
+  output$plot2 = renderPlot({ 
 
+print(plot2())
   })
   
+  output$downloadPlot2 <- downloadHandler(
+    filename = function() { "LinearModelBoxPlot.png" },
+    content = function(file) {
+      ggsave(file, plot = plot2(), device = "png")
+    })
+  
+  plot3 = reactive({    if(!is.null(createMLEData())){
+    MLEData = createMLEData()
+    #mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
+    return({plot(lmer(Entropy ~ Genotype*Level +  (1|Mouse), MLEData))
+      qqnorm(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
+      qqline(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
+    })}})
   output$plot3 = renderPlot({ 
-    if(!is.null(createMLEData())){
-      MLEData = createMLEData()
-      #mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
-            return({plot(lmer(Entropy ~ Genotype*Level +  (1|Mouse), MLEData))
-              qqnorm(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
-              qqline(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
-            })}
+print(plot3())
     
   })
   
+  output$downloadPlot3 <- downloadHandler(
+    filename = function() { "LMER_Plot.png" },
+    content = function(file) {
+      ggsave(file, plot = plot3(), device = "png")
+    })
+  
+  summaryMLE = reactive({if(!is.null(createMLEData())){
+    MLEData = createMLEData()
+    mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
+    #return(MLEData)
+    return({summary(mod1)})}})
   
   output$summaryMLE = renderTable({ 
-    if(!is.null(createMLEData())){
-      MLEData = createMLEData()
-      mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
-      #return(MLEData)
-      return({summary(mod1)
+    print(summaryMLE())
+    
+  })
+  output$downloadData <- downloadHandler(
+    filename = function() { "LMER_Summary.csv" },
+    content = function(file) {
+      write.csv(summaryMLE(), file)
     })
+  
+  plot4 = reactive({if(!is.null(EntropyAnalysisWT())){
+    WT_Data = EntropyAnalysisWT()
+    countWT2 = rowMeans(WT_Data$Counts2)
+    observations = c()
+    for (n in alphabetH2){
+      aux = c()
+      call = unlist(strsplit(n,'\t', fixed=FALSE))
+      aux = rep(call,countWT2[n])
+      observations = c(observations,aux)
+    }
+    names(countWT2) = alphabetH2
+    markovModelH2 = markovchainFit(data=observations)
+    tpmH2 = as.matrix(markovModelH2$estimate@transitionMatrix)
+    
+    g <- graph.adjacency(tpmH2, weighted=TRUE)
+    complicatedCalls = intersect(unique(observations),c("Cx", "Ts", "Fs", "Ha", "C"))
+    otherCalls = setdiff(unique(observations),complicatedCalls)
+    callOrder = c(complicatedCalls,otherCalls)
+    V(g)$color = "dodgerblue3"
+    for (calls in complicatedCalls){
+      V(g)[calls]$color = "firebrick3"
     }
     
+    E(g)$weight = edge.betweenness(g)
+    deg <- degree(g, mode="all")
+    V(g)$size <- deg*2
+    E(g)$arrow.size <- .1
+    E(g)$edge.color <- "gray80"
+    E(g)$width <- edge.betweenness(g)*.06
+    #E(g)$width <- E(g)$weight*.06
+    V(g)$label.cex = .7
+    return(plot(g, main = "Transition Graph for WT Group", layout=layout_in_circle(g, order = callOrder), vertex.label.color= "white",
+                vertex.label.family = "Helvetica", edge.label.font = 2))
+  }
+    else(stop("Upload folder") )
   })
   
   output$plot4 = renderPlot({ 
-    if(!is.null(EntropyAnalysisWT())){
-      WT_Data = EntropyAnalysisWT()
-  countWT2 = rowMeans(WT_Data$Counts2)
-  observations = c()
-  for (n in alphabetH2){
-    aux = c()
-    call = unlist(strsplit(n,'\t', fixed=FALSE))
-    aux = rep(call,countWT2[n])
-    observations = c(observations,aux)
-  }
-  names(countWT2) = alphabetH2
-  markovModelH2 = markovchainFit(data=observations)
-  tpmH2 = as.matrix(markovModelH2$estimate@transitionMatrix)
-  
-  g <- graph.adjacency(tpmH2, weighted=TRUE)
-  complicatedCalls = intersect(unique(observations),c("Cx", "Ts", "Fs", "Ha", "C"))
-  otherCalls = setdiff(unique(observations),complicatedCalls)
-  callOrder = c(complicatedCalls,otherCalls)
-  V(g)$color = "dodgerblue3"
-  for (calls in complicatedCalls){
-    V(g)[calls]$color = "firebrick3"
-  }
-  
-  E(g)$weight = edge.betweenness(g)
-  deg <- degree(g, mode="all")
-  V(g)$size <- deg*2
-  E(g)$arrow.size <- .1
-  E(g)$edge.color <- "gray80"
-  E(g)$width <- edge.betweenness(g)*.06
-  #E(g)$width <- E(g)$weight*.06
-  V(g)$label.cex = .7
-  return(plot(g, main = "Transition Graph for WT Group", layout=layout_in_circle(g, order = callOrder), vertex.label.color= "white",
-       vertex.label.family = "Helvetica", edge.label.font = 2))
-    }
-  else(stop("Upload folder") )
-  
+    print(plot4())
   })
+  output$downloadPlot4 <- downloadHandler(
+    filename = function() { "TransitionGraphforWTGroup.png" },
+    content = function(file) {
+      ggsave(file, plot = plot4(), device = "png")
+    })
   
-  
-  output$plot5 = renderPlot({ 
+ plot5 = reactive({ 
     if(!is.null(EntropyAnalysisHT())){
       HT_Data = EntropyAnalysisHT()
       countHT2 = rowMeans(HT_Data$Counts2)
@@ -596,7 +631,16 @@ shinyServer(function(input, output, session) {
     
   })
   
-  
+ output$plot5 = renderPlot({ 
+   print(plot5())
+ })
+ output$downloadPlot5 <- downloadHandler(
+   filename = function() { "TransitionGraphforHTGroup.png" },
+   content = function(file) {
+     ggsave(file, plot = plot5(), device = "png")
+   })
+ 
+ 
   spls_DA = reactive({ 
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT()) & input$select != 0) {
       HT_Data = EntropyAnalysisHT()
@@ -660,7 +704,7 @@ shinyServer(function(input, output, session) {
   
   })
       
-  output$plot6 = renderPlot({ 
+plot6 = reactive({ 
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
@@ -670,8 +714,16 @@ shinyServer(function(input, output, session) {
     else(stop("Upload folder") )
     
   })
+output$plot6 = renderPlot({ 
+  print(plot6())
+})
+  output$downloadPlot6 <- downloadHandler(
+    filename = function() { "plotIndiv.png" },
+    content = function(file) {
+      ggsave(file, plot = plot6(), device = "png")
+    })
   
-  output$plot7 = renderPlot({ 
+plot7 = reactive({ 
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
@@ -680,6 +732,15 @@ shinyServer(function(input, output, session) {
     else(stop("Upload folder") )
     
   })
+
+output$plot7 = renderPlot({ 
+  print(plot7())
+})
+  output$downloadPlot7 <- downloadHandler(
+    filename = function() { "plotVar.png" },
+    content = function(file) {
+      ggsave(file, plot = plot7(), device = "png")
+    })
   
   
 #       
