@@ -490,6 +490,18 @@ shinyServer(function(input, output, session) {
     
   })
   
+  lmerAnalysis = reactive({
+    if(!is.null(createMLEData())){
+      MLEData = isolate(createMLEData())
+      options(lmerControl=list(check.nobs.vs.rankZ = "warning", check.nobs.vs.nlev = "warning",
+                               check.nobs.vs.nRE = "warning", check.nlev.gtreq.5 = "warning", check.nlev.gtr.1 = "warning"))
+      mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
+      return(mod1)
+    }
+    else(return(NULL))
+    
+  })
+  
   plot2 = reactive({    
     if(!is.null(createMLEData())){
       MLEData = isolate(createMLEData())
@@ -512,15 +524,12 @@ print(plot2())
       ggsave(file, plot = plot2(), device = "png")
     })
   
-  plot3 = reactive({    if(!is.null(createMLEData())){
-    MLEData = createMLEData()
-    #mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
-    return({plot(lmer(Entropy ~ Genotype*Level +  (1|Mouse), MLEData))
-      qqnorm(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
-      qqline(resid(lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)))
+  plot3 = reactive({if(!is.null(lmerAnalysis())){
+    mle = isolate(lmerAnalysis())
+    return({plot(mle)
     })}})
   output$plot3 = renderPlot({ 
-print(plot3())
+    print(plot3())
     
   })
   
@@ -530,23 +539,40 @@ print(plot3())
       ggsave(file, plot = plot3(), device = "png")
     })
   
-  summaryMLE = reactive({if(!is.null(createMLEData())){
-    MLEData = createMLEData()
-    mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
-    #return(MLEData)
-    return({summary(mod1)})}})
-  
-  output$summaryMLE = renderTable({ 
-    print(summaryMLE())
+  plot4 = reactive({if(!is.null(lmerAnalysis())){
+    mle = isolate(lmerAnalysis())
+    return({qqnorm(resid(mle))
+      qqline(resid(mle))
+    })}})
+  output$plot4 = renderPlot({ 
+    print(plot4())
     
   })
-  output$downloadData <- downloadHandler(
-    filename = function() { "LMER_Summary.csv" },
+  
+  output$downloadPlot4 <- downloadHandler(
+    filename = function() { "LMER_Plot2.png" },
     content = function(file) {
-      write.csv(summaryMLE(), file)
+      ggsave(file, plot = plot3(), device = "png")
     })
   
-  plot4 = reactive({if(!is.null(EntropyAnalysisWT())){
+  
+  summaryMLE = reactive({if(!is.null(lmerAnalysis())){
+    mle = isolate(lmerAnalysis())
+    return({summary(mle)})
+  }})
+  
+  output$summaryMLE = renderPrint({ 
+    if(!is.null(lmerAnalysis())){
+   # mle = isolate(lmerAnalysis())
+    return({summaryMLE()})}
+  })
+  output$downloadData <- downloadHandler(
+    filename = function() { "LMER_Summary.txt" },
+    content = function(file) {
+      write.table(summaryMLE(), file)
+    })
+  
+  plot5 = reactive({if(!is.null(EntropyAnalysisWT())){
     WT_Data = EntropyAnalysisWT()
     countWT2 = rowMeans(WT_Data$Counts2)
     observations = c()
@@ -583,16 +609,16 @@ print(plot3())
     else(stop("Upload folder") )
   })
   
-  output$plot4 = renderPlot({ 
-    print(plot4())
+  output$plot5 = renderPlot({ 
+    print(plot5())
   })
-  output$downloadPlot4 <- downloadHandler(
+  output$downloadPlot5 <- downloadHandler(
     filename = function() { "TransitionGraphforWTGroup.png" },
     content = function(file) {
-      ggsave(file, plot = plot4(), device = "png")
+      ggsave(file, plot = plot5(), device = "png")
     })
   
- plot5 = reactive({ 
+ plot6= reactive({ 
     if(!is.null(EntropyAnalysisHT())){
       HT_Data = EntropyAnalysisHT()
       countHT2 = rowMeans(HT_Data$Counts2)
@@ -631,10 +657,10 @@ print(plot3())
     
   })
   
- output$plot5 = renderPlot({ 
-   print(plot5())
+ output$plot6 = renderPlot({ 
+   print(plot6())
  })
- output$downloadPlot5 <- downloadHandler(
+ output$downloadPlot6 <- downloadHandler(
    filename = function() { "TransitionGraphforHTGroup.png" },
    content = function(file) {
      ggsave(file, plot = plot5(), device = "png")
@@ -704,7 +730,7 @@ print(plot3())
   
   })
       
-plot6 = reactive({ 
+plot7 = reactive({ 
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
@@ -714,16 +740,16 @@ plot6 = reactive({
     else(stop("Upload folder") )
     
   })
-output$plot6 = renderPlot({ 
-  print(plot6())
+output$plot7= renderPlot({ 
+  print(plot7())
 })
-  output$downloadPlot6 <- downloadHandler(
+  output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
     content = function(file) {
-      ggsave(file, plot = plot6(), device = "png")
+      ggsave(file, plot = plot7(), device = "png")
     })
   
-plot7 = reactive({ 
+plot8 = reactive({ 
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
@@ -733,24 +759,15 @@ plot7 = reactive({
     
   })
 
-output$plot7 = renderPlot({ 
-  print(plot7())
+output$plot8 = renderPlot({ 
+  print(plot8())
 })
-  output$downloadPlot7 <- downloadHandler(
+  output$downloadPlot8 <- downloadHandler(
     filename = function() { "plotVar.png" },
     content = function(file) {
-      ggsave(file, plot = plot7(), device = "png")
+      ggsave(file, plot = plot8(), device = "png")
     })
-  
-  
-#       
-#       
-#       
-#       
-#       
-#     }
-#    
-    
+
   
 
 }) ## End of Server function!
