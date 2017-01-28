@@ -678,6 +678,7 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("HT", ncol(HT_Data$F1)))))
         Calls = as.factor(alphabetH1)
+        keepxTop = 10
       }
       if (input$select == 2){
         FreqDataFrame = cbind(WT_Data$F2, HT_Data$F2)
@@ -685,6 +686,7 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("HT", ncol(HT_Data$F2)))))
         Calls = as.factor(alphabetH2)
+        keepxTop = 50
       }
 
       if (input$select == 3){
@@ -693,6 +695,7 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("HT", ncol(HT_Data$F3)))))
         Calls = as.factor(alphabetH3)
+        keepxTop = 50
       }
       
       ##### spls-DA tuning analysis #####
@@ -707,7 +710,7 @@ print(plot2())
       #plot(0,0,xlim = c(1,ncomp), ylim = c(0,.5), type = 'n', xlab = 'sPLS-DA components', ylab = 'classification error rate', main = 'Validation')
       #cl = c(rep(c("blue3","firebrick3", "darkcyan","goldenrod1"), round(length(c(5:50))/4)))
       #lines = c(rep(c(rep(1,4),rep(2,4),rep(3,4),rep(4,4)), round(length(c(5:50))/4)))
-      for (j in c(5:50)){
+      for (j in c(5:keepxTop)){
         calls.splsda_validation <- splsda(X, Y, ncomp = ncomp, keepX = rep(j, ncomp))  
         validation = perf(calls.splsda_validation, validation = "loo",dist = "max.dist",
                           progressBar = F)
@@ -723,18 +726,21 @@ print(plot2())
       
       keepx = subset(validationM,validationM[,2]!=1)[1]
       nComp = subset(validationM,validationM[,2]!=1)[1,2]
-      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepx, nComp)) 
-      
-      return(calls.splsda)
+      if(keepx > keepxTop){
+        keepx1 = keepxTop
+      }
+      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepx1, nComp)) 
+      outputdata = list(calls.splsda = calls.splsda, Genotype = Genotype)
+      return(outputdata)
     } else(return(NULL) )
   
   })
       
 plot7 = reactive({ 
     if(!is.null(spls_DA())){
-      calls.splsda = spls_DA()
+      splsda = spls_DA()
       return(
-      plotIndiv(calls.splsda, ind.names = Genotype, comp = c(1, 2),
+      plotIndiv(splsda$calls.splsda, ind.names = splsda$Genotype, comp = c(1, 2),
                  ellipse = TRUE, style = "ggplot2", cex = c(4, 4), title = ""))
     }
     else(stop("Upload folder") )
@@ -753,7 +759,7 @@ plot8 = reactive({
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
-        plotVar(calls.splsda,plot = T,abline = T,legend = T))
+        plotVar(calls.splsda$calls.splsda,plot = T,abline = T,legend = T))
     }
     else(stop("Upload folder") )
     
