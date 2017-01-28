@@ -727,9 +727,9 @@ print(plot2())
       keepx = subset(validationM,validationM[,2]!=1)[1]
       nComp = subset(validationM,validationM[,2]!=1)[1,2]
       if(keepx > keepxTop){
-        keepx1 = keepxTop
+        keepx = keepxTop
       }
-      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepx1, nComp)) 
+      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepx, nComp)) 
       outputdata = list(calls.splsda = calls.splsda, Genotype = Genotype)
       return(outputdata)
     } else(return(NULL) )
