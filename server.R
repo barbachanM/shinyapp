@@ -678,7 +678,8 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("HT", ncol(HT_Data$F1)))))
         Calls = as.factor(alphabetH1)
-        keepxTop = 10
+        nComp = 2
+        keepX = 6
       }
       if (input$select == 2){
         FreqDataFrame = cbind(WT_Data$F2, HT_Data$F2)
@@ -686,7 +687,8 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("HT", ncol(HT_Data$F2)))))
         Calls = as.factor(alphabetH2)
-        keepxTop = 50
+        nComp = 2
+        keepX = 11
       }
 
       if (input$select == 3){
@@ -695,41 +697,42 @@ print(plot2())
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
         Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("HT", ncol(HT_Data$F3)))))
         Calls = as.factor(alphabetH3)
-        keepxTop = 50
+        nComp = 4
+        keepX = 24
       }
       
       ##### spls-DA tuning analysis #####
       
       X = tFreqDataFrame
       Y = Genotype
-      ncomp = 5
-      validationMatrix = data.frame(matrix(vector(), 0, 10,
-                                           dimnames=list(c(), 
-                                                         c("ncomp_1", "ncomp_2", "ncomp_3","ncomp_4","ncomp_5", "ncomp_6", "ncomp_7","ncomp_8","ncomp_9", "ncomp_10"))),
-                                    stringsAsFactors=F)
-      #plot(0,0,xlim = c(1,ncomp), ylim = c(0,.5), type = 'n', xlab = 'sPLS-DA components', ylab = 'classification error rate', main = 'Validation')
-      #cl = c(rep(c("blue3","firebrick3", "darkcyan","goldenrod1"), round(length(c(5:50))/4)))
-      #lines = c(rep(c(rep(1,4),rep(2,4),rep(3,4),rep(4,4)), round(length(c(5:50))/4)))
-      for (j in c(5:keepxTop)){
-        calls.splsda_validation <- splsda(X, Y, ncomp = ncomp, keepX = rep(j, ncomp))  
-        validation = perf(calls.splsda_validation, validation = "loo",dist = "max.dist",
-                          progressBar = F)
-        newline = data.frame(t(validation$error.rate$overall))
-        validationMatrix = rbind.data.frame(validationMatrix,newline)
-        #lines(validation$error.rate$overall[,"max.dist"], type = 'l', lty = lines[j], col = cl[j])
-      }
-      
-      ##### spls-DA  analysis #####
-      
-      validationM = as.matrix(which(validationMatrix == min(validationMatrix), arr.ind = TRUE))
-      validationMatrix[row.names(subset(validationM,validationM[,2]!=1)),subset(validationM,validationM[,2]!=1)[,2]]
-      
-      keepx = subset(validationM,validationM[,2]!=1)[1]
-      nComp = subset(validationM,validationM[,2]!=1)[1,2]
-      if(keepx > keepxTop){
-        keepx = keepxTop
-      }
-      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepx, nComp)) 
+      # ncomp = 5
+      # validationMatrix = data.frame(matrix(vector(), 0, 10,
+      #                                      dimnames=list(c(), 
+      #                                                    c("ncomp_1", "ncomp_2", "ncomp_3","ncomp_4","ncomp_5", "ncomp_6", "ncomp_7","ncomp_8","ncomp_9", "ncomp_10"))),
+      #                               stringsAsFactors=F)
+      # #plot(0,0,xlim = c(1,ncomp), ylim = c(0,.5), type = 'n', xlab = 'sPLS-DA components', ylab = 'classification error rate', main = 'Validation')
+      # #cl = c(rep(c("blue3","firebrick3", "darkcyan","goldenrod1"), round(length(c(5:50))/4)))
+      # #lines = c(rep(c(rep(1,4),rep(2,4),rep(3,4),rep(4,4)), round(length(c(5:50))/4)))
+      # for (j in c(5:keepxTop)){
+      #   calls.splsda_validation <- splsda(X, Y, ncomp = ncomp, keepX = rep(j, ncomp))  
+      #   validation = perf(calls.splsda_validation, validation = "loo",dist = "max.dist",
+      #                     progressBar = F)
+      #   newline = data.frame(t(validation$error.rate$overall))
+      #   validationMatrix = rbind.data.frame(validationMatrix,newline)
+      #   #lines(validation$error.rate$overall[,"max.dist"], type = 'l', lty = lines[j], col = cl[j])
+      # }
+      # 
+      # ##### spls-DA  analysis #####
+      # 
+      # validationM = as.matrix(which(validationMatrix == min(validationMatrix), arr.ind = TRUE))
+      # validationMatrix[row.names(subset(validationM,validationM[,2]!=1)),subset(validationM,validationM[,2]!=1)[,2]]
+      # 
+      # keepx = subset(validationM,validationM[,2]!=1)[1]
+      # nComp = subset(validationM,validationM[,2]!=1)[1,2]
+      # if(keepx > keepxTop){
+      #   keepx = keepxTop
+      # }
+      calls.splsda <- splsda(X, Y, ncomp = nComp, keepX = rep(keepX, nComp)) 
       outputdata = list(calls.splsda = calls.splsda, Genotype = Genotype)
       return(outputdata)
     } else(return(NULL) )
