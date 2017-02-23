@@ -43,6 +43,7 @@ dashboardPage(
 ), 
         tabPanel("Markov Model Graphs", plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')
 ,tags$hr(),plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot')),
-        tabPanel("Classification Analysis", selectInput("select", label = h4("Select Entropy Level for Classification"), 
+        tabPanel("Classification Analysis", selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
+                                                        choices = list("-" = 0,"10%" = 0.1,"20%" = 0.2,"30%" = 0.3,"40%" = 0.4,"50%" = 0.5)), selectInput("select", label = h4("Select Entropy Level for Classification"), 
                                                         choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'),tags$hr(),plotOutput("plot8"),downloadButton('downloadPlot8', 'Download Plot'))
       ))))
