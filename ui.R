@@ -12,7 +12,7 @@ dashboardPage(
   dashboardSidebar( shinyDirButton('directory', 'Browse WT', 'Please select WT Group Folder'),tags$p(),
                        
                        tags$hr(),
-                       shinyDirButton('directory2', 'Browse HT', 'Please select HT Group Folder'),tags$p(),
+                       shinyDirButton('directory2', 'Browse Mut', 'Please select Mut Group Folder'),tags$p(),
                        tags$p(),
                        
                        

@@ -205,7 +205,7 @@ shinyServer(function(input, output, session) {
         for (call in alphabetH1){
           values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
           F1[f][call,] = values(ProbabilityHash$H1, keys= call)
-          # values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
+          #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
           values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
           if (!is.nan(values(EntropyHash$H1, keys= call))){
             h11 = h11 + (as.double(values(EntropyHash$H1, keys= call)))}
@@ -364,8 +364,8 @@ shinyServer(function(input, output, session) {
         for (call in alphabetH2){
           first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
           values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
-          F2[f][call,] = values(ProbabilityHash$H2, keys= call)
-          # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
+          #F2[f][call,] = values(ProbabilityHash$H2, keys= call)
+           #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
           values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
           if (!is.nan(values(EntropyHash$H2, keys= call))){
             h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
@@ -378,9 +378,9 @@ shinyServer(function(input, output, session) {
           firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
           first = firstTwo[1]
           firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-          values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
-          F3[f][call,] = values(ProbabilityHash$H3, keys= call)
-          # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
+        values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+          #F3[f][call,] = values(ProbabilityHash$H3, keys= call)
+          #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
           values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
           if (!is.nan(values(EntropyHash$H3, keys= call))){
             h33 = h33 + (as.double(values(EntropyHash$H3, keys= call)))}
@@ -453,15 +453,17 @@ shinyServer(function(input, output, session) {
       EntropyData = cbind(EntropyData, Genotype)
       Mouse = c()
       for (m in rownames(EntropyData)){
-        m = substr(m,9,12)
+        print(m)
+        #m = substr(m,9,12)
         Mouse = c(Mouse,m)
+        
       }
       MLEData = data.frame(matrix(vector(), 0, 4,
                                   dimnames=list(c(), c("Mouse", "Entropy", "Level","Genotype" ))),
                            stringsAsFactors=T)
       for (n in rownames(EntropyData)){
-        m2 = substr(n,9,12)
-        mouseData = data.frame(Mouse = c(rep(m2,4)),
+       # m2 = substr(n,9,12)
+        mouseData = data.frame(Mouse = c(rep(n,4)),
                                Entropy = c(EntropyData[n,"H0"],EntropyData[n,"H1"],
                                            EntropyData[n,"H2"],EntropyData[n,"H3"]),
                                Level = factor(c("H0","H1","H2","H3")),
@@ -474,8 +476,8 @@ shinyServer(function(input, output, session) {
       }
       
       for (n in rownames(EntropyData)){
-        m2 = substr(n,9,12)
-        mouseData = data.frame(Mouse = c(rep(m2,4)),
+        #m2 = substr(n,9,12)
+        mouseData = data.frame(Mouse = c(rep(n,4)),
                                Entropy = c(EntropyData[n,"H0"],EntropyData[n,"H1"],
                                            EntropyData[n,"H2"],EntropyData[n,"H3"]),
                                Level = factor(c("H0","H1","H2","H3")),
@@ -494,10 +496,12 @@ shinyServer(function(input, output, session) {
   lmerAnalysis = reactive({
     if(!is.null(createMLEData())){
       MLEData = isolate(createMLEData())
-      options(lmerControl=list(check.nobs.vs.rankZ = "warning", check.nobs.vs.nlev = "warning",
-                               check.nobs.vs.nRE = "warning", check.nlev.gtreq.5 = "warning", check.nlev.gtr.1 = "warning"))
+     # options(lmerControl=list(check.nobs.vs.rankZ = "warning", check.nobs.vs.nlev = "warning",
+     #                         check.nobs.vs.nRE = "warning", check.nlev.gtreq.5 = "warning", check.nlev.gtr.1 = "warning"))
       mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
+      summary(mod1)
       return(mod1)
+      
     }
     else(return(NULL))
     
@@ -651,7 +655,7 @@ print(plot2())
       E(g)$width <- edge.betweenness(g)*.06
       #E(g)$width <- E(g)$weight*.06
       V(g)$label.cex = .7
-      return(plot(g, main = "Transition Graph for HT Group", layout=layout_in_circle(g, order = callOrder), vertex.label.color= "white",
+      return(plot(g, main = "Transition Graph for Mut Group", layout=layout_in_circle(g, order = callOrder), vertex.label.color= "white",
                   vertex.label.family = "Helvetica", edge.label.font = 2))
     }
     else(stop("Upload folder") )
