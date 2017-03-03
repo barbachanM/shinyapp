@@ -13,7 +13,7 @@ dashboardPage(
                        
                        tags$hr(),
                        shinyDirButton('directory2', 'Browse Mut', 'Please select Mut Group Folder'),tags$p(),
-                       tags$p(),
+                       tags$p(), helpText("Please upload folders containg tab delimited .csv vocalization files. "),
                        
                        
                        
@@ -25,17 +25,33 @@ dashboardPage(
   dashboardBody(
     # Boxes need to be put in a row (or column)
     
-    
     box(
-      title = "Selected Folders", background = "black",
-      textOutput('directorypath'), actionButton("goButton","Upload"),
-      textOutput('directorypath2'), actionButton("goButton2","Upload")
+      title = "Selected Folders", background = "light-blue",
+      #textOutput('directorypath'), actionButton("goButton","Upload"),
+      #verbatimTextOutput(outputId, placeholder = FALSE), actionButton("goButton","Upload")
+      htmlOutput("directorypath"),actionButton("goButton","Upload"),
+      conditionalPanel(condition = "!output.setupCompleteWT",tags$div(class="header", checked=NA,
+                                                                    list(
+                                                                      tags$p("Please upload WT folder")))),
+              conditionalPanel(condition = "output.setupCompleteWT",tags$div(class="header", checked=NA,
+                                                                           list(
+                                                                             tags$p("Uploaded!")))),
+      htmlOutput("directorypath2"),actionButton("goButton2","Upload"),
+      conditionalPanel(condition = "!output.setupCompleteHT",tags$div(class="header", checked=NA,
+                                                                      list(
+                                                                        tags$p("Please upload Mut folder")))),
+      conditionalPanel(condition = "output.setupCompleteHT",tags$div(class="header", checked=NA,
+                                                                     list(
+                                                                       tags$p("Uploaded!"))))
+      #textOutput('directorypath2'), actionButton("goButton2","Upload")
     ),
+
+    conditionalPanel(condition = "output.setupComplete",
     fluidRow(
       headerPanel(
         'Analysis Output'),
       tabsetPanel(
-        tabPanel("Entropy Analysis",plotOutput("plot1"), tags$hr(),downloadButton('downloadPlot1', 'Download Plot')
+        tabPanel("Entropy Analysis",tags$em(actionLink("help1","help")),actionLink("help1","help"),plotOutput("plot1"), tags$hr(),downloadButton('downloadPlot1', 'Download Plot')
 ),
         tabPanel("Linear Model Analysis", plotOutput("plot2"),downloadButton('downloadPlo2', 'Download Plot')
 ,tags$hr(),plotOutput("plot3"),downloadButton('downloadPlot3', 'Download Plot'),tags$hr(),plotOutput("plot4"),downloadButton('downloadPlot4', 'Download Plot'),tags$hr()
@@ -43,7 +59,16 @@ dashboardPage(
 ), 
         tabPanel("Markov Model Graphs", plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')
 ,tags$hr(),plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot')),
-        tabPanel("Classification Analysis", selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
+        tabPanel("Classification Analysis", helpText("Please select the entropy level of the analysis,",
+                                                     "it should be chosen based on the linear model result",
+                                                     "found on the Linear Model Analysis tab."), selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
                                                         choices = list("-" = 0,"10%" = 0.1,"20%" = 0.2,"30%" = 0.3,"40%" = 0.4,"50%" = 0.5)), selectInput("select", label = h4("Select Entropy Level for Classification"), 
                                                         choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'),tags$hr(),plotOutput("plot8"),downloadButton('downloadPlot8', 'Download Plot'))
-      ))))
+      ))),
+conditionalPanel(condition = "!output.setupComplete",
+                 tags$div(class="header", checked=NA,
+                          list(tags$hr(),
+                            tags$h1("Upload folders")
+                          )
+                 )))
+)

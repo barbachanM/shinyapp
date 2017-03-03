@@ -13,6 +13,11 @@ library(shiny)
 library(shinyFiles)
 library(shinydashboard)
 
+rv <- reactiveValues()
+rv$setupComplete <- FALSE
+rv$setupCompleteWT <- FALSE
+rv$setupCompleteHT <- FALSE
+
 
 alphabetH1 = c('C','Cx','D','F','Fs','H','Ha','Sh','Ts','U')
 nH1 = length(alphabetH1)
@@ -55,8 +60,14 @@ shinyServer(function(input, output, session) {
     return(parseDirPath(volumes, input$directory2))
   })
   
-  output$directorypath = renderPrint({folderInput1()})
-  output$directorypath2 = renderPrint({folderInput2()}) 
+  #output$directorypath = renderPrint({folderInput1()})
+  
+  output$directorypath <- renderUI({
+    HTML(folderInput1())
+  })
+  output$directorypath2 = renderUI({
+    HTML(folderInput2())
+  })
   
 
   files1 <- reactive({
@@ -72,9 +83,12 @@ shinyServer(function(input, output, session) {
 
   observeEvent(input$goButton, {
     if(identical(valuesF1$flag, "True")){
+
       valuesF1$flag = NULL
     }
     valuesF1$flag<-"True"
+    
+    
   })
   
   
@@ -91,6 +105,7 @@ shinyServer(function(input, output, session) {
     if (is.null(valuesF1$flag)) 
       return("Insert WT Folder")
     if (identical(valuesF1$flag, "True")) {
+      
       return(isolate(nFiles1()))}
   } )
   
@@ -102,6 +117,11 @@ shinyServer(function(input, output, session) {
       return(isolate(nFiles2()))}
   } )
 
+  observe({   if(identical(valuesF1$flag, "True")){rv$setupCompleteWT <- 4}
+    output$setupCompleteWT <- reactive({
+      return(rv$setupCompleteWT)
+    })
+    outputOptions(output, 'setupCompleteWT', suspendWhenHidden=FALSE)})
   
 ### Reactive Expressions ###
   
@@ -252,8 +272,13 @@ shinyServer(function(input, output, session) {
     return(outputData)}
     else(return(NULL))
   })
+  observe({   if(!is.null(EntropyAnalysisWT())){rv$setupCompleteWT = T}
+    output$setupCompleteWT <- reactive({
+      return(rv$setupCompleteWT)
+    })
+    outputOptions(output, 'setupCompleteWT', suspendWhenHidden=FALSE)})
 
-  
+
   ##### HT 
 
   EntropyDataHT = reactive({
@@ -399,11 +424,19 @@ shinyServer(function(input, output, session) {
       return(outputData)}
     else(return(NULL))
   })
-  
-  
+  observe({   if(!is.null(EntropyAnalysisHT())){rv$setupCompleteHT <- TRUE}
+    output$setupCompleteHT <- reactive({
+      return(rv$setupCompleteHT)
+    })
+    outputOptions(output, 'setupCompleteHT', suspendWhenHidden=FALSE)})
   
   #### Plots ###
-  
+  observe({   if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){rv$setupComplete <- TRUE}
+  output$setupComplete <- reactive({
+    return(rv$setupComplete)
+  })
+  outputOptions(output, 'setupComplete', suspendWhenHidden=FALSE)})
+
   plot1 = reactive({
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
       HT_Data = EntropyAnalysisHT()
@@ -411,13 +444,13 @@ shinyServer(function(input, output, session) {
       EntropyHTLM = HT_Data$Entropy
       EntropyWTLM = WT_Data$Entropy
       
-      HT = colMeans(EntropyHTLM)
+      Mut = colMeans(EntropyHTLM)
       WT = colMeans(EntropyWTLM)
       
       dataEntropy = data.frame(
-        Group = factor(c(rep("HT",4),c(rep("WT",4)))),
+        Group = factor(c(rep("Mut",4),c(rep("WT",4)))),
         Level = factor(c("H0","H1","H2","H3","H0","H1","H2","H3"), levels=c("H0","H1","H2","H3")),
-        Entropy = c(HT,WT))
+        Entropy = c(Mut,WT))
       
       
       return({ggplot(data=dataEntropy, aes(x=Level, y=Entropy, group=Group, colour=Group)) +
@@ -444,12 +477,12 @@ shinyServer(function(input, output, session) {
       EntropyHTLM = HT_Data$Entropy
       EntropyWTLM = WT_Data$Entropy
       
-      HT = colMeans(EntropyHTLM)
+      Mut = colMeans(EntropyHTLM)
       WT = colMeans(EntropyWTLM)
       
       
       EntropyData = rbind(EntropyWTLM, EntropyHTLM)
-      Genotype = c(rep("WT",length(row.names(EntropyWTLM))),rep("HT",length(row.names(EntropyHTLM))))
+      Genotype = c(rep("WT",length(row.names(EntropyWTLM))),rep("Mut",length(row.names(EntropyHTLM))))
       EntropyData = cbind(EntropyData, Genotype)
       Mouse = c()
       for (m in rownames(EntropyData)){
@@ -469,7 +502,7 @@ shinyServer(function(input, output, session) {
                                Level = factor(c("H0","H1","H2","H3")),
                                Genotype = {
                                  if(EntropyData[n,"Genotype"] == "WT"){Genotype = c(rep("WT",4))}
-                                 else{Genotype = c(rep("HT",4))}}
+                                 else{Genotype = c(rep("Mut",4))}}
         )
         
         MLEData = rbind.data.frame(MLEData,mouseData)
@@ -519,8 +552,8 @@ shinyServer(function(input, output, session) {
     else(stop("Upload folder") )})
   
   output$plot2 = renderPlot({ 
-
-print(plot2())
+    if(!is.null(createMLEData())){
+print(plot2())}
   })
   
   output$downloadPlot2 <- downloadHandler(
@@ -615,7 +648,8 @@ print(plot2())
   })
   
   output$plot5 = renderPlot({ 
-    print(plot5())
+    if(!is.null(EntropyAnalysisWT())){
+    print(plot5())}
   })
   output$downloadPlot5 <- downloadHandler(
     filename = function() { "TransitionGraphforWTGroup.png" },
@@ -663,10 +697,11 @@ print(plot2())
   })
   
  output$plot6 = renderPlot({ 
-   print(plot6())
+   if(!is.null(EntropyAnalysisHT())){
+   print(plot6())}
  })
  output$downloadPlot6 <- downloadHandler(
-   filename = function() { "TransitionGraphforHTGroup.png" },
+   filename = function() { "TransitionGraphforMutGroup.png" },
    content = function(file) {
      ggsave(file, plot = plot5(), device = "png")
    })
@@ -681,7 +716,7 @@ print(plot2())
         FreqDataFrame = cbind(WT_Data$F1, HT_Data$F1)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("HT", ncol(HT_Data$F1)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("Mut", ncol(HT_Data$F1)))))
         Calls = as.factor(alphabetH1)
         keepX = as.double(input$percentage)*nH1
       }
@@ -689,7 +724,7 @@ print(plot2())
         FreqDataFrame = cbind(WT_Data$F2, HT_Data$F2)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("HT", ncol(HT_Data$F2)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("Mut", ncol(HT_Data$F2)))))
         Calls = as.factor(alphabetH2)
         keepX = as.double(input$percentage)*nH2
       }
@@ -698,7 +733,7 @@ print(plot2())
         FreqDataFrame = cbind(WT_Data$F3, HT_Data$F3)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("HT", ncol(HT_Data$F3)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("Mut", ncol(HT_Data$F3)))))
         Calls = as.factor(alphabetH3)
         keepX = as.double(input$percentage)*nH3
       }
@@ -725,7 +760,8 @@ plot7 = reactive({
     
   })
 output$plot7= renderPlot({ 
-  print(plot7())
+  if(!is.null(spls_DA())){
+  print(plot7())}
 })
   output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
@@ -744,13 +780,15 @@ plot8 = reactive({
   })
 
 output$plot8 = renderPlot({ 
-  print(plot8())
+  if(!is.null(spls_DA())){
+  print(plot8())}
 })
   output$downloadPlot8 <- downloadHandler(
     filename = function() { "plotVar.png" },
     content = function(file) {
       ggsave(file, plot = plot8(), device = "png")
     })
+
 
   
 
