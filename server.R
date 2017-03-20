@@ -11,6 +11,7 @@ library(mixOmics)
 library(data.table)
 library(shiny)
 library(shinyFiles)
+library(shinyBS)
 library(shinydashboard)
 
 rv <- reactiveValues()
@@ -69,21 +70,21 @@ shinyServer(function(input, output, session) {
     HTML(folderInput2())
   })
   
-
+  
   files1 <- reactive({
     list.files(path = folderInput1(), pattern = "*.csv", full.names = T)
   })
   nFiles1 <-reactive({length(files1())})
-
+  
   files2 <- reactive({
     list.files(path = folderInput2(), pattern = "*.csv", full.names = T)
   })
   nFiles2 <- reactive({ length(files2())})
   
-
+  
   observeEvent(input$goButton, {
     if(identical(valuesF1$flag, "True")){
-
+      
       valuesF1$flag = NULL
     }
     valuesF1$flag<-"True"
@@ -99,7 +100,7 @@ shinyServer(function(input, output, session) {
     valuesF2$flag<-"True"
   })
   
-
+  
   
   output$t1 = renderPrint({
     if (is.null(valuesF1$flag)) 
@@ -116,51 +117,51 @@ shinyServer(function(input, output, session) {
     if (identical(valuesF2$flag, "True")) {
       return(isolate(nFiles2()))}
   } )
-
+  
   observe({   if(identical(valuesF1$flag, "True")){rv$setupCompleteWT <- 4}
     output$setupCompleteWT <- reactive({
       return(rv$setupCompleteWT)
     })
     outputOptions(output, 'setupCompleteWT', suspendWhenHidden=FALSE)})
   
-### Reactive Expressions ###
+  ### Reactive Expressions ###
   
   ### WT ###
- 
+  
   EntropyDataWT = reactive({
     if (identical(valuesF1$flag, "True")){
-  lof1 =  isolate(files1())  
-  nf1 = isolate(nFiles1())
-  
-  df = data.frame(matrix(0,ncol = 4, nrow = nf1))
-  rownames(df) = lof1
-  colnames(df) = c("H0", "H1", "H2", "H3")
-  
-  C_2 = data.frame(matrix(0,ncol = nf1, nrow = nH2))
-  rownames(C_2) = alphabetH2
-  colnames(C_2) = lof1
-  
-  F_1 = data.frame(matrix(0,ncol = nf1, nrow = nH1))
-  rownames(F_1) = alphabetH1
-  colnames(F_1) = lof1
-  
-  F_2 = data.frame(matrix(0,ncol = nf1, nrow = nH2))
-  rownames(F_2) = alphabetH2
-  colnames(F_2) = lof1
-  
-  F_3 = data.frame(matrix(0,ncol = nf1, nrow = nH3))
-  rownames(F_3) = alphabetH3
-  colnames(F_3) = lof1
-  
-  combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3)
-  
-  
-  
-  return(combo)
+      lof1 =  isolate(files1())  
+      nf1 = isolate(nFiles1())
+      
+      df = data.frame(matrix(0,ncol = 4, nrow = nf1))
+      rownames(df) = lof1
+      colnames(df) = c("H0", "H1", "H2", "H3")
+      
+      C_2 = data.frame(matrix(0,ncol = nf1, nrow = nH2))
+      rownames(C_2) = alphabetH2
+      colnames(C_2) = lof1
+      
+      F_1 = data.frame(matrix(0,ncol = nf1, nrow = nH1))
+      rownames(F_1) = alphabetH1
+      colnames(F_1) = lof1
+      
+      F_2 = data.frame(matrix(0,ncol = nf1, nrow = nH2))
+      rownames(F_2) = alphabetH2
+      colnames(F_2) = lof1
+      
+      F_3 = data.frame(matrix(0,ncol = nf1, nrow = nH3))
+      rownames(F_3) = alphabetH3
+      colnames(F_3) = lof1
+      
+      combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3)
+      
+      
+      
+      return(combo)
     }
     else(return(NULL))
   })
-
+  
   EntropyAnalysisWT = reactive({ 
     if(!is.null(EntropyDataWT())){
       data = EntropyDataWT()
@@ -171,9 +172,10 @@ shinyServer(function(input, output, session) {
       F1 = isolate(data$F_1)
       F2 = isolate(data$F_2)
       F3 = isolate(data$F_3)
-      
+      withProgress(message = 'Uploading', value = 0, { 
       
       for(f in f1){
+        incProgress(1/length(f1), detail = f)
         
         fileIN = readLines(f)
         
@@ -267,9 +269,10 @@ shinyServer(function(input, output, session) {
         Entropy[f,"H2"] = h22
         Entropy[f,"H3"] = h33
         
-      }
+      }    }
+    )
       outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
-    return(outputData)}
+      return(outputData)}
     else(return(NULL))
   })
   observe({   if(!is.null(EntropyAnalysisWT())){rv$setupCompleteWT = T}
@@ -277,10 +280,10 @@ shinyServer(function(input, output, session) {
       return(rv$setupCompleteWT)
     })
     outputOptions(output, 'setupCompleteWT', suspendWhenHidden=FALSE)})
-
-
+  
+  
   ##### HT 
-
+  
   EntropyDataHT = reactive({
     if (identical(valuesF2$flag, "True")){
       lof2 =  isolate(files2())  
@@ -323,9 +326,11 @@ shinyServer(function(input, output, session) {
       F1 = isolate(data$F_1)
       F2 = isolate(data$F_2)
       F3 = isolate(data$F_3)
-      
-      
-      for(f in f1){
+      withProgress(message = 'Uploading', value = 0, { 
+        
+        for(f in f1){
+          incProgress(1/length(f1), detail = f) 
+    
         
         fileIN = readLines(f)
         
@@ -390,7 +395,7 @@ shinyServer(function(input, output, session) {
           first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
           values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
           #F2[f][call,] = values(ProbabilityHash$H2, keys= call)
-           #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
+          #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
           values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
           if (!is.nan(values(EntropyHash$H2, keys= call))){
             h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
@@ -403,7 +408,7 @@ shinyServer(function(input, output, session) {
           firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
           first = firstTwo[1]
           firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-        values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+          values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
           #F3[f][call,] = values(ProbabilityHash$H3, keys= call)
           #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
           values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
@@ -419,7 +424,8 @@ shinyServer(function(input, output, session) {
         Entropy[f,"H2"] = h22
         Entropy[f,"H3"] = h33
         
-      }
+        }
+      })
       outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
       return(outputData)}
     else(return(NULL))
@@ -432,11 +438,11 @@ shinyServer(function(input, output, session) {
   
   #### Plots ###
   observe({   if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){rv$setupComplete <- TRUE}
-  output$setupComplete <- reactive({
-    return(rv$setupComplete)
-  })
-  outputOptions(output, 'setupComplete', suspendWhenHidden=FALSE)})
-
+    output$setupComplete <- reactive({
+      return(rv$setupComplete)
+    })
+    outputOptions(output, 'setupComplete', suspendWhenHidden=FALSE)})
+  
   plot1 = reactive({
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
       HT_Data = EntropyAnalysisHT()
@@ -461,7 +467,7 @@ shinyServer(function(input, output, session) {
   })
   output$plot1 = renderPlot({ 
     print(plot1())
-    })
+  })
   
   
   output$downloadPlot1 <- downloadHandler(
@@ -495,7 +501,7 @@ shinyServer(function(input, output, session) {
                                   dimnames=list(c(), c("Mouse", "Entropy", "Level","Genotype" ))),
                            stringsAsFactors=T)
       for (n in rownames(EntropyData)){
-       # m2 = substr(n,9,12)
+        # m2 = substr(n,9,12)
         mouseData = data.frame(Mouse = c(rep(n,4)),
                                Entropy = c(EntropyData[n,"H0"],EntropyData[n,"H1"],
                                            EntropyData[n,"H2"],EntropyData[n,"H3"]),
@@ -517,20 +523,20 @@ shinyServer(function(input, output, session) {
                                Genotype = c(rep(EntropyData[n,"Genotype"],4)))
         
         MLEData = rbind.data.frame(MLEData,mouseData)
-         
+        
       }
       return(MLEData)
-      } 
-      else(return(NULL))
+    } 
+    else(return(NULL))
     
     
   })
-  
+
   lmerAnalysis = reactive({
     if(!is.null(createMLEData())){
       MLEData = isolate(createMLEData())
-     # options(lmerControl=list(check.nobs.vs.rankZ = "warning", check.nobs.vs.nlev = "warning",
-     #                         check.nobs.vs.nRE = "warning", check.nlev.gtreq.5 = "warning", check.nlev.gtr.1 = "warning"))
+      # options(lmerControl=list(check.nobs.vs.rankZ = "warning", check.nobs.vs.nlev = "warning",
+      #                         check.nobs.vs.nRE = "warning", check.nlev.gtreq.5 = "warning", check.nlev.gtr.1 = "warning"))
       mod1 = lmer(Entropy ~ Genotype*Level +  (1|Mouse),MLEData)
       summary(mod1)
       return(mod1)
@@ -553,7 +559,7 @@ shinyServer(function(input, output, session) {
   
   output$plot2 = renderPlot({ 
     if(!is.null(createMLEData())){
-print(plot2())}
+      print(plot2())}
   })
   
   output$downloadPlot2 <- downloadHandler(
@@ -601,8 +607,8 @@ print(plot2())}
   
   output$summaryMLE = renderPrint({ 
     if(!is.null(lmerAnalysis())){
-   # mle = isolate(lmerAnalysis())
-    return({summaryMLE()})}
+      # mle = isolate(lmerAnalysis())
+      return({summaryMLE()})}
   })
   output$downloadData <- downloadHandler(
     filename = function() { "LMER_Summary.txt" },
@@ -649,7 +655,7 @@ print(plot2())}
   
   output$plot5 = renderPlot({ 
     if(!is.null(EntropyAnalysisWT())){
-    print(plot5())}
+      print(plot5())}
   })
   output$downloadPlot5 <- downloadHandler(
     filename = function() { "TransitionGraphforWTGroup.png" },
@@ -657,7 +663,7 @@ print(plot2())}
       ggsave(file, plot = plot5(), device = "png")
     })
   
- plot6= reactive({ 
+  plot6= reactive({ 
     if(!is.null(EntropyAnalysisHT())){
       HT_Data = EntropyAnalysisHT()
       countHT2 = rowMeans(HT_Data$Counts2)
@@ -696,22 +702,22 @@ print(plot2())}
     
   })
   
- output$plot6 = renderPlot({ 
-   if(!is.null(EntropyAnalysisHT())){
-   print(plot6())}
- })
- output$downloadPlot6 <- downloadHandler(
-   filename = function() { "TransitionGraphforMutGroup.png" },
-   content = function(file) {
-     ggsave(file, plot = plot5(), device = "png")
-   })
- 
- 
+  output$plot6 = renderPlot({ 
+    if(!is.null(EntropyAnalysisHT())){
+      print(plot6())}
+  })
+  output$downloadPlot6 <- downloadHandler(
+    filename = function() { "TransitionGraphforMutGroup.png" },
+    content = function(file) {
+      ggsave(file, plot = plot5(), device = "png")
+    })
+  
+  
   spls_DA = reactive({ 
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT()) & input$select != 0 & input$percentage != 0) {
       HT_Data = EntropyAnalysisHT()
       WT_Data = EntropyAnalysisWT()
-    
+      
       if (input$select == 1){
         FreqDataFrame = cbind(WT_Data$F1, HT_Data$F1)
         tFreqDataFrame = t(FreqDataFrame)
@@ -728,7 +734,7 @@ print(plot2())}
         Calls = as.factor(alphabetH2)
         keepX = as.double(input$percentage)*nH2
       }
-
+      
       if (input$select == 3){
         FreqDataFrame = cbind(WT_Data$F3, HT_Data$F3)
         tFreqDataFrame = t(FreqDataFrame)
@@ -746,30 +752,30 @@ print(plot2())}
       outputdata = list(calls.splsda = calls.splsda, Genotype = Genotype)
       return(outputdata)
     } else(return(NULL) )
-  
+    
   })
-      
-plot7 = reactive({ 
+  
+  plot7 = reactive({ 
     if(!is.null(spls_DA())){
       splsda = spls_DA()
       return(
-      plotIndiv(splsda$calls.splsda, ind.names = splsda$Genotype, comp = c(1, 2),
-                 ellipse = TRUE, style = "ggplot2", cex = c(4, 4), title = ""))
+        plotIndiv(splsda$calls.splsda, ind.names = splsda$Genotype, comp = c(1, 2),
+                  ellipse = TRUE, style = "ggplot2", cex = c(4, 4), title = ""))
     }
     else(stop("Upload folder") )
     
   })
-output$plot7= renderPlot({ 
-  if(!is.null(spls_DA())){
-  print(plot7())}
-})
+  output$plot7= renderPlot({ 
+    if(!is.null(spls_DA())){
+      print(plot7())}
+  })
   output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
     content = function(file) {
       ggsave(file, plot = plot7(), device = "png")
     })
   
-plot8 = reactive({ 
+  plot8 = reactive({ 
     if(!is.null(spls_DA())){
       calls.splsda = spls_DA()
       return(
@@ -778,22 +784,36 @@ plot8 = reactive({
     else(stop("Upload folder") )
     
   })
-
-output$plot8 = renderPlot({ 
-  if(!is.null(spls_DA())){
-  print(plot8())}
-})
+  
+  output$plot8 = renderPlot({ 
+    if(!is.null(spls_DA())){
+      print(plot8())}
+  })
   output$downloadPlot8 <- downloadHandler(
     filename = function() { "plotVar.png" },
     content = function(file) {
       ggsave(file, plot = plot8(), device = "png")
     })
-
-
   
-
+  ### PopOvers:
+  
+  addPopover(session=session, id="help1", title="", 
+             content="Mixed-effects linear model where genotype is a fixed effect and entropy level is a random effect. Because is expected a different baseline entropy for each mouse and for the change in entropy between each entropy level to vary between mice, a random intercept, random slope model was applied.", placement = "bottom",
+             trigger = "click", options = NULL)
+  addPopover(session=session, id="help2", title="", 
+             content="Markov Model graph for the transitions between two calls. Thickness of edges and size of nodes represent the relative proportion of a transition and call numbers, respectively. Complex calls are represented by red nodes and simple calls are represented by blue nodes.", placement = "bottom",
+             trigger = "click", options = NULL)
+  
+  addPopover(session=session, id="help3", title="", 
+             content="Sparse Partial Least Squares Determination Analysis is used to perform variable selection and classification in a one step procedure.", placement = "bottom",
+             trigger = "click", options = NULL)
+  
+  ## Button:
+  
+  
+  
+  
 }) ## End of Server function!
-  
-  
-  
-  
+
+
+
