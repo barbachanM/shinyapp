@@ -1,4 +1,6 @@
-
+# install.packages("shinydashboard")
+# install.packages('shinyBS', dependencies=TRUE, repos='http://cran.rstudio.com/')
+# install.packages('shinyjs', dependencies=TRUE, repos='http://cran.rstudio.com/')
 library(hash)
 library(stringi)
 library(stringr)
@@ -13,6 +15,10 @@ library(shiny)
 library(shinyFiles)
 library(shinyBS)
 library(shinydashboard)
+library(shinyjs)
+library(caret)
+library(Boruta)
+library(mlbench)
 
 rv <- reactiveValues()
 rv$setupComplete <- FALSE
@@ -173,104 +179,104 @@ shinyServer(function(input, output, session) {
       F2 = isolate(data$F_2)
       F3 = isolate(data$F_3)
       withProgress(message = 'Uploading', value = 0, { 
-      
-      for(f in f1){
-        incProgress(1/length(f1), detail = f)
         
-        fileIN = readLines(f)
-        
-        EntropyHash = hash(keys = c('H1','H2','H3'))
-        EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
-        
-        CountHash = hash(keys = c('H1','H2','H3'))
-        CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
-        
-        ProbabilityHash = hash(keys = c('H1','H2','H3'))
-        ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
-        
-        
-        for (call in alphabetH1){
-          values(CountHash$H1, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
-        }
-        for (call in alphabetH2){
-          values(CountHash$H2, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
-          Counts2[f][call,] = values(CountHash$H2, keys= call)
-        }
-        for (call in alphabetH3){
-          values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+        for(f in f1){
+          incProgress(1/length(f1), detail = f)
           
-        }
-        
-        totalH1 = sum(values(CountHash$H1))
-        
-        y = split(seq(1:nH2), ceiling(seq_along(seq(1:nH2))/10))
-        totalH2 = c()
-        for(g in y){
-          totalH2 = c(totalH2, sum(values(CountHash$H2,keys = alphabetH2[g])))
-        }
-        
-        names(totalH2) = alphabetH1
-        
-        z = split(seq(1:nH3), ceiling(seq_along(seq(1:nH3))/10))
-        totalH3 = c()
-        for(g in z){
-          totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
-        }
-        names(totalH3) = alphabetH2
-        h11 = 0
-        for (call in alphabetH1){
-          values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
-          F1[f][call,] = values(ProbabilityHash$H1, keys= call)
-          #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
-          values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
-          if (!is.nan(values(EntropyHash$H1, keys= call))){
-            h11 = h11 + (as.double(values(EntropyHash$H1, keys= call)))}
-          else{
-            values(EntropyHash$H1, keys= call) = 0
+          fileIN = readLines(f)
+          
+          EntropyHash = hash(keys = c('H1','H2','H3'))
+          EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          
+          CountHash = hash(keys = c('H1','H2','H3'))
+          CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
+          
+          ProbabilityHash = hash(keys = c('H1','H2','H3'))
+          ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          
+          
+          for (call in alphabetH1){
+            values(CountHash$H1, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
           }
-        }
-        h22 = 0
-        for (call in alphabetH2){
-          first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-          values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
-          F2[f][call,] = values(ProbabilityHash$H2, keys= call)
-          # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
-          values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
-          if (!is.nan(values(EntropyHash$H2, keys= call))){
-            h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
-          else{
-            values(EntropyHash$H2, keys= call) = 0
+          for (call in alphabetH2){
+            values(CountHash$H2, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            Counts2[f][call,] = values(CountHash$H2, keys= call)
           }
-        }
-        h33 = 0
-        for (call in alphabetH3){
-          firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
-          first = firstTwo[1]
-          firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-          values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
-          F3[f][call,] = values(ProbabilityHash$H3, keys= call)
-          # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
-          values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
-          if (!is.nan(values(EntropyHash$H3, keys= call))){
-            h33 = h33 + (as.double(values(EntropyHash$H3, keys= call)))}
-          else{
-            values(EntropyHash$H3, keys= call) = 0
+          for (call in alphabetH3){
+            values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            
           }
-        }
-        
-        Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
-        Entropy[f,"H1"] = h11
-        Entropy[f,"H2"] = h22
-        Entropy[f,"H3"] = h33
-        
-      }    }
-    )
+          
+          totalH1 = sum(values(CountHash$H1))
+          
+          y = split(seq(1:nH2), ceiling(seq_along(seq(1:nH2))/10))
+          totalH2 = c()
+          for(g in y){
+            totalH2 = c(totalH2, sum(values(CountHash$H2,keys = alphabetH2[g])))
+          }
+          
+          names(totalH2) = alphabetH1
+          
+          z = split(seq(1:nH3), ceiling(seq_along(seq(1:nH3))/10))
+          totalH3 = c()
+          for(g in z){
+            totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
+          }
+          names(totalH3) = alphabetH2
+          h11 = 0
+          for (call in alphabetH1){
+            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
+            F1[f][call,] = values(ProbabilityHash$H1, keys= call)
+            #values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
+            values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
+            if (!is.nan(values(EntropyHash$H1, keys= call))){
+              h11 = h11 + (as.double(values(EntropyHash$H1, keys= call)))}
+            else{
+              values(EntropyHash$H1, keys= call) = 0
+            }
+          }
+          h22 = 0
+          for (call in alphabetH2){
+            first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
+            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+            F2[f][call,] = values(ProbabilityHash$H2, keys= call)
+            # values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
+            values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
+            if (!is.nan(values(EntropyHash$H2, keys= call))){
+              h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
+            else{
+              values(EntropyHash$H2, keys= call) = 0
+            }
+          }
+          h33 = 0
+          for (call in alphabetH3){
+            firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
+            first = firstTwo[1]
+            firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
+            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+            F3[f][call,] = values(ProbabilityHash$H3, keys= call)
+            # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
+            values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
+            if (!is.nan(values(EntropyHash$H3, keys= call))){
+              h33 = h33 + (as.double(values(EntropyHash$H3, keys= call)))}
+            else{
+              values(EntropyHash$H3, keys= call) = 0
+            }
+          }
+          
+          Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
+          Entropy[f,"H1"] = h11
+          Entropy[f,"H2"] = h22
+          Entropy[f,"H3"] = h33
+          
+        }    }
+      )
       outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
       return(outputData)}
     else(return(NULL))
@@ -330,100 +336,100 @@ shinyServer(function(input, output, session) {
         
         for(f in f1){
           incProgress(1/length(f1), detail = f) 
-    
-        
-        fileIN = readLines(f)
-        
-        EntropyHash = hash(keys = c('H1','H2','H3'))
-        EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
-        
-        CountHash = hash(keys = c('H1','H2','H3'))
-        CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
-        
-        ProbabilityHash = hash(keys = c('H1','H2','H3'))
-        ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
-        ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
-        ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
-        
-        
-        for (call in alphabetH1){
-          values(CountHash$H1, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
-        }
-        for (call in alphabetH2){
-          values(CountHash$H2, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
-          Counts2[f][call,] = values(CountHash$H2, keys= call)
-        }
-        for (call in alphabetH3){
-          values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
           
-        }
-        
-        totalH1 = sum(values(CountHash$H1))
-        
-        y = split(seq(1:nH2), ceiling(seq_along(seq(1:nH2))/10))
-        totalH2 = c()
-        for(g in y){
-          totalH2 = c(totalH2, sum(values(CountHash$H2,keys = alphabetH2[g])))
-        }
-        
-        names(totalH2) = alphabetH1
-        
-        z = split(seq(1:nH3), ceiling(seq_along(seq(1:nH3))/10))
-        totalH3 = c()
-        for(g in z){
-          totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
-        }
-        names(totalH3) = alphabetH2
-        h11 = 0
-        for (call in alphabetH1){
-          values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
-          F1[f][call,] = values(ProbabilityHash$H1, keys= call)
-          # values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
-          values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
-          if (!is.nan(values(EntropyHash$H1, keys= call))){
-            h11 = h11 + (as.double(values(EntropyHash$H1, keys= call)))}
-          else{
-            values(EntropyHash$H1, keys= call) = 0
+          
+          fileIN = readLines(f)
+          
+          EntropyHash = hash(keys = c('H1','H2','H3'))
+          EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          
+          CountHash = hash(keys = c('H1','H2','H3'))
+          CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
+          
+          ProbabilityHash = hash(keys = c('H1','H2','H3'))
+          ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
+          ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
+          ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          
+          
+          for (call in alphabetH1){
+            values(CountHash$H1, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
           }
-        }
-        h22 = 0
-        for (call in alphabetH2){
-          first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
-          values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
-          #F2[f][call,] = values(ProbabilityHash$H2, keys= call)
-          #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
-          values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
-          if (!is.nan(values(EntropyHash$H2, keys= call))){
-            h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
-          else{
-            values(EntropyHash$H2, keys= call) = 0
+          for (call in alphabetH2){
+            values(CountHash$H2, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            Counts2[f][call,] = values(CountHash$H2, keys= call)
           }
-        }
-        h33 = 0
-        for (call in alphabetH3){
-          firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
-          first = firstTwo[1]
-          firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
-          values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
-          #F3[f][call,] = values(ProbabilityHash$H3, keys= call)
-          #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
-          values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
-          if (!is.nan(values(EntropyHash$H3, keys= call))){
-            h33 = h33 + (as.double(values(EntropyHash$H3, keys= call)))}
-          else{
-            values(EntropyHash$H3, keys= call) = 0
+          for (call in alphabetH3){
+            values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            
           }
-        }
-        
-        Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
-        Entropy[f,"H1"] = h11
-        Entropy[f,"H2"] = h22
-        Entropy[f,"H3"] = h33
-        
+          
+          totalH1 = sum(values(CountHash$H1))
+          
+          y = split(seq(1:nH2), ceiling(seq_along(seq(1:nH2))/10))
+          totalH2 = c()
+          for(g in y){
+            totalH2 = c(totalH2, sum(values(CountHash$H2,keys = alphabetH2[g])))
+          }
+          
+          names(totalH2) = alphabetH1
+          
+          z = split(seq(1:nH3), ceiling(seq_along(seq(1:nH3))/10))
+          totalH3 = c()
+          for(g in z){
+            totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
+          }
+          names(totalH3) = alphabetH2
+          h11 = 0
+          for (call in alphabetH1){
+            values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
+            F1[f][call,] = values(ProbabilityHash$H1, keys= call)
+            # values(ProbabilityHashHT$H1, keys= call) = c(values(ProbabilityHashHT$H1, keys= call),values(ProbabilityHash$H1, keys= call))
+            values(EntropyHash$H1, keys= call) = -1*values(ProbabilityHash$H1, keys= call)*log2(values(ProbabilityHash$H1, keys= call))
+            if (!is.nan(values(EntropyHash$H1, keys= call))){
+              h11 = h11 + (as.double(values(EntropyHash$H1, keys= call)))}
+            else{
+              values(EntropyHash$H1, keys= call) = 0
+            }
+          }
+          h22 = 0
+          for (call in alphabetH2){
+            first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
+            values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
+            #F2[f][call,] = values(ProbabilityHash$H2, keys= call)
+            #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
+            values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
+            if (!is.nan(values(EntropyHash$H2, keys= call))){
+              h22 = h22 + (as.double(values(EntropyHash$H2, keys= call)))}
+            else{
+              values(EntropyHash$H2, keys= call) = 0
+            }
+          }
+          h33 = 0
+          for (call in alphabetH3){
+            firstTwo = unlist(strsplit(call,'\t', fixed=FALSE))
+            first = firstTwo[1]
+            firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
+            values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
+            #F3[f][call,] = values(ProbabilityHash$H3, keys= call)
+            #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
+            values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
+            if (!is.nan(values(EntropyHash$H3, keys= call))){
+              h33 = h33 + (as.double(values(EntropyHash$H3, keys= call)))}
+            else{
+              values(EntropyHash$H3, keys= call) = 0
+            }
+          }
+          
+          Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
+          Entropy[f,"H1"] = h11
+          Entropy[f,"H2"] = h22
+          Entropy[f,"H3"] = h33
+          
         }
       })
       outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
@@ -531,7 +537,7 @@ shinyServer(function(input, output, session) {
     
     
   })
-
+  
   lmerAnalysis = reactive({
     if(!is.null(createMLEData())){
       MLEData = isolate(createMLEData())
@@ -772,7 +778,7 @@ shinyServer(function(input, output, session) {
   output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
     content = function(file) {
-      ggsave(file, plot = plot7(), device = "png")
+      ggsave(file, plot = plot7())
     })
   
   plot8 = reactive({ 
@@ -793,6 +799,75 @@ shinyServer(function(input, output, session) {
     filename = function() { "plotVar.png" },
     content = function(file) {
       ggsave(file, plot = plot8(), device = "png")
+    })
+  
+  
+  stepLDA = reactive({
+      if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
+        HT_Data = EntropyAnalysisHT()
+        WT_Data = EntropyAnalysisWT()
+        EntropyHTLM = HT_Data$Entropy
+        EntropyWTLM = WT_Data$Entropy
+        
+        Mut = colMeans(EntropyHTLM)
+        WT = colMeans(EntropyWTLM)
+        
+        
+        EntropyData = rbind(EntropyWTLM, EntropyHTLM)
+        Genotype = c(rep("WT",length(row.names(EntropyWTLM))),rep("Mut",length(row.names(EntropyHTLM))))
+        EntropyData = cbind(EntropyData, Genotype)
+    
+    set.seed(825)
+    stepLDA = train(EntropyData[,1:4], EntropyData[,5], method = "stepLDA")
+    
+    return(stepLDA)}
+    else(return(NULL))
+    
+  })
+  
+  
+  plot9 = reactive({ 
+    if(!is.null(stepLDA())){
+      calls.stepLDA = stepLDA()
+      return(
+        featurePlot(x = EntropyData[, 1:4], 
+                    y = EntropyData[,5], 
+                    plot = "box",
+                    ## Add a strip at the top
+                    auto.key = list(columns = 2)))
+    }
+    else(stop("Upload folder") )
+    
+  })
+  
+  output$plot9 = renderPlot({ 
+    if(!is.null(stepLDA())){
+      print(plot9())}
+  })
+  output$downloadPlot9 <- downloadHandler(
+    filename = function() { "plotVar.png" },
+    content = function(file) {
+      ggsave(file, plot = plot9(), device = "png")
+    })
+  
+  plot10 = reactive({ 
+    if(!is.null(spls_DA())){
+      calls.splsda = spls_DA()
+      return(
+        plotVar(calls.splsda$calls.splsda,plot = T,abline = T,legend = T))
+    }
+    else(stop("Upload folder") )
+    
+  })
+  
+  output$plot10 = renderPlot({ 
+    if(!is.null(spls_DA())){
+      print(plot10())}
+  })
+  output$downloadPlot10 <- downloadHandler(
+    filename = function() { "plotVar.png" },
+    content = function(file) {
+      ggsave(file, plot = plot10(), device = "png")
     })
   
   ### PopOvers:
