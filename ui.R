@@ -78,7 +78,7 @@ dashboardPage(
                                                  )
         ),plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')
 ,tags$hr(),plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot')),
-        tabPanel("SPLS-DA", tags$div(class="header", checked=NA,
+        tabPanel("MixOmics - sPLS-DA", tags$div(class="header", checked=NA,
                                                      
                                                      tags$em(bsButton("help3","Info", icon = NULL, style = "inverse",
                                                                       size = "small", type = "action", block = FALSE, disabled = FALSE,
@@ -87,25 +87,30 @@ dashboardPage(
         ), selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
                                                         choices = list("-" = 0,"10%" = 0.1,"20%" = 0.2,"30%" = 0.3,"40%" = 0.4,"50%" = 0.5)), selectInput("select", label = h4("Select Entropy Level for Classification", bsTooltip("select", "The entropy level of the analysis should be chosen based on the linear model result found on the Linear Model Analysis tab.",                                                                                                                                     placement = "right", trigger = "hover")),
                                                         choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'),tags$hr(),plotOutput("plot8"),downloadButton('downloadPlot8', 'Download Plot')),
-tabPanel("Caret - StepLDA", tags$div(class="header", checked=NA,
-                                             
-                                             tags$em(bsButton("help3","Info", icon = NULL, style = "inverse",
-                                                              size = "small", type = "action", block = FALSE, disabled = FALSE,
-                                                              value = FALSE)
-                                             )
-), selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
-               choices = list("-" = 0,"10%" = 0.1,"20%" = 0.2,"30%" = 0.3,"40%" = 0.4,"50%" = 0.5)), selectInput("select", label = h4("Select Entropy Level for Classification", bsTooltip("select", "The entropy level of the analysis should be chosen based on the linear model result found on the Linear Model Analysis tab.",                                                                                                                                     placement = "right", trigger = "hover")),
-                                                                                                                 choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'),tags$hr(),plotOutput("plot8"),downloadButton('downloadPlot8', 'Download Plot')),
-tabPanel("Boruta", tags$div(class="header", checked=NA,
-                                             
-                                             tags$em(bsButton("help3","Info", icon = NULL, style = "inverse",
-                                                              size = "small", type = "action", block = FALSE, disabled = FALSE,
-                                                              value = FALSE)
-                                             )
-), selectInput("percentage", label = h4("Select percentage of calls for Classification"), 
-               choices = list("-" = 0,"10%" = 0.1,"20%" = 0.2,"30%" = 0.3,"40%" = 0.4,"50%" = 0.5)), selectInput("select", label = h4("Select Entropy Level for Classification", bsTooltip("select", "The entropy level of the analysis should be chosen based on the linear model result found on the Linear Model Analysis tab.",                                                                                                                                     placement = "right", trigger = "hover")),
-                                                                                                                 choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)), plotOutput("plot7"),downloadButton('downloadPlot7', 'Download Plot'),tags$hr(),plotOutput("plot8"),downloadButton('downloadPlot8', 'Download Plot'))
 
+
+
+### Caret
+tabPanel("Caret - Stepwise LDA", tags$div(class="header", checked=NA,
+                                         
+                                         tags$em(bsButton("help3","Info", icon = NULL, style = "inverse",
+                                                          size = "small", type = "action", block = FALSE, disabled = FALSE,
+                                                          value = FALSE)
+                                         )
+),plotOutput("plot9"),downloadButton('downloadPlot9', 'Download Plot')
+,tags$hr(),verbatimTextOutput("CaretPerf"),downloadButton('downloadCaretPrint', 'Download Performance Summary for Caret stepLDA')),
+
+
+
+### Boruta
+tabPanel("Boruta - Random forest", tags$div(class="header", checked=NA,
+                                         
+                                         tags$em(bsButton("help4","Info", icon = NULL, style = "inverse",
+                                                          size = "small", type = "action", block = FALSE, disabled = FALSE,
+                                                          value = FALSE)
+                                         )
+),plotOutput("borutaplot"),downloadButton('downloadborutaplot', 'Download Plot')
+,tags$hr(),verbatimTextOutput("boruta"),downloadButton('borutaOutcome', 'Download Boruta Outcome'))
       ))), 
 conditionalPanel(condition = "!output.setupComplete",
                  tags$div(class="header", checked=NA,

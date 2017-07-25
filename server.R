@@ -778,7 +778,7 @@ shinyServer(function(input, output, session) {
   output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
     content = function(file) {
-      ggsave(file, plot = plot7())
+      ggsave(file, plot = plot7(), device = "png")
     })
   
   plot8 = reactive({ 
@@ -801,7 +801,8 @@ shinyServer(function(input, output, session) {
       ggsave(file, plot = plot8(), device = "png")
     })
   
-  
+   
+  ### Caret
   stepLDA = reactive({
       if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
         HT_Data = EntropyAnalysisHT()
@@ -819,8 +820,9 @@ shinyServer(function(input, output, session) {
     
     set.seed(825)
     stepLDA = train(EntropyData[,1:4], EntropyData[,5], method = "stepLDA")
+    outputstepLDA = list(stepLDA = stepLDA, EntropyData = EntropyData)
     
-    return(stepLDA)}
+    return(outputstepLDA)}
     else(return(NULL))
     
   })
@@ -830,9 +832,9 @@ shinyServer(function(input, output, session) {
     if(!is.null(stepLDA())){
       calls.stepLDA = stepLDA()
       return(
-        featurePlot(x = EntropyData[, 1:4], 
-                    y = EntropyData[,5], 
-                    plot = "box",
+        featurePlot(x = calls.stepLDA$EntropyData[, 1:4], 
+                    y = calls.stepLDA$EntropyData[,5], 
+                    plot = "ellipse",
                     ## Add a strip at the top
                     auto.key = list(columns = 2)))
     }
@@ -845,30 +847,92 @@ shinyServer(function(input, output, session) {
       print(plot9())}
   })
   output$downloadPlot9 <- downloadHandler(
-    filename = function() { "plotVar.png" },
+    filename = function() { "carretPlot.png" },
     content = function(file) {
       ggsave(file, plot = plot9(), device = "png")
     })
+
   
-  plot10 = reactive({ 
-    if(!is.null(spls_DA())){
-      calls.splsda = spls_DA()
+  output$CaretPerf = renderPrint({ 
+    if(!is.null(stepLDA())){
+      calls.stepLDA = stepLDA()
+      print(getTrainPerf(calls.stepLDA$stepLDA))}
+  })
+  output$downloadCaretPrint <- downloadHandler(
+    filename = function() { "PerfCaret.txt" },
+    content = function(file) {
+      write.table(CaretPerf(),file)
+    })
+  
+  
+#### Boruta ###
+  
+  boruta = reactive({
+    if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
+      HT_Data = EntropyAnalysisHT()
+      WT_Data = EntropyAnalysisWT()
+      EntropyHTLM = HT_Data$Entropy
+      EntropyWTLM = WT_Data$Entropy
+      
+      Mut = colMeans(EntropyHTLM)
+      WT = colMeans(EntropyWTLM)
+      
+      
+      EntropyData = rbind(EntropyWTLM, EntropyHTLM)
+      Genotype = c(rep("WT",length(row.names(EntropyWTLM))),rep("Mut",length(row.names(EntropyHTLM))))
+      EntropyData = cbind(EntropyData, Genotype)
+      
+      b = Boruta(EntropyData[,1:4], EntropyData[,5])
+      outputBoruta = list(b = b, EntropyData = EntropyData)
+      
+      return(outputBoruta)}
+    else(return(NULL))
+    
+  })
+  
+  
+  borutaplot = reactive({ 
+    if(!is.null(boruta())){
+      calls.boruta = boruta()
       return(
-        plotVar(calls.splsda$calls.splsda,plot = T,abline = T,legend = T))
+        plot(calls.boruta$b, colCode = c("darkseagreen4", "goldenrod1", "firebrick", "dodgerblue3")))
+      plotImpHistory(b, xlab = "Classifier run",
+                     ylab = "Importance")
     }
     else(stop("Upload folder") )
     
   })
   
-  output$plot10 = renderPlot({ 
-    if(!is.null(spls_DA())){
-      print(plot10())}
+  
+  output$borutaplot = renderPlot({ 
+    if(!is.null(boruta())){
+      print(borutaplot())}
   })
-  output$downloadPlot10 <- downloadHandler(
-    filename = function() { "plotVar.png" },
+  output$downloadborutaplot <- downloadHandler(
+    filename = function() { "PerfCaret.png" },
     content = function(file) {
-      ggsave(file, plot = plot10(), device = "png")
+      ggsave(file, plot = borutaplot(), device = "png")
     })
+
+  borutaOutcome = reactive({ 
+    if(!is.null(boruta())){
+      calls.boruta = boruta()
+      return(calls.boruta$b)
+    }
+    else(stop("Upload folder") )
+    
+  })
+  
+  output$boruta = renderPrint({ 
+    if(!is.null(boruta())){
+      print(borutaOutcome())}
+  })
+  output$borutaOutcome <- downloadHandler(
+    filename = function() { "Boruta.txt" },
+    content = function(file) {
+      write.table(boruta(), file)
+    })
+  
   
   ### PopOvers:
   
