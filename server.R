@@ -400,7 +400,7 @@ shinyServer(function(input, output, session) {
           for (call in alphabetH2){
             first = unlist(strsplit(call,'\t', fixed=FALSE))[1]
             values(ProbabilityHash$H2, keys= call) = as.double(values(CountHash$H2, keys= call))/totalH2[first]
-            #F2[f][call,] = values(ProbabilityHash$H2, keys= call)
+          F2[f][call,] = values(ProbabilityHash$H2, keys= call)
             #values(ProbabilityHashHT$H2, keys= call) = c(values(ProbabilityHashHT$H2, keys= call),as.double(values(CountHash$H2, keys= call))/totalH2[first])
             values(EntropyHash$H2, keys= call) = -1*as.double(values(ProbabilityHash$H1, keys= first))*as.double(values(ProbabilityHash$H2, keys= call))*log2(values(ProbabilityHash$H2, keys= call))
             if (!is.nan(values(EntropyHash$H2, keys= call))){
@@ -415,7 +415,7 @@ shinyServer(function(input, output, session) {
             first = firstTwo[1]
             firstTwo = paste(firstTwo[1],'\t',firstTwo[2],sep='')
             values(ProbabilityHash$H3, keys= call) = values(CountHash$H3, keys= call)/totalH3[firstTwo]
-            #F3[f][call,] = values(ProbabilityHash$H3, keys= call)
+            F3[f][call,] = values(ProbabilityHash$H3, keys= call)
             #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
             values(EntropyHash$H3, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= call)*log2(values(ProbabilityHash$H3, keys= call))
             if (!is.nan(values(EntropyHash$H3, keys= call))){
@@ -868,24 +868,44 @@ shinyServer(function(input, output, session) {
 #### Boruta ###
   
   boruta = reactive({
-    if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
+    if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT()) & input$selectB != 0) {    
       HT_Data = EntropyAnalysisHT()
       WT_Data = EntropyAnalysisWT()
-      EntropyHTLM = HT_Data$Entropy
-      EntropyWTLM = WT_Data$Entropy
       
-      Mut = colMeans(EntropyHTLM)
-      WT = colMeans(EntropyWTLM)
+      if (input$selectB == 1){
+        groupDataWT = t(WT_Data$F1)
+        groupDataWT = cbind(groupDataWT,rep("WT",ncol(WT_Data$F1)))
+        groupDataHT = t(HT_Data$F1)
+        groupDataHT = cbind(groupDataHT,rep("Mut",ncol(HT_Data$F1)))
+        
+      }
+      if (input$selectB == 2){
+        groupDataWT = t(WT_Data$F2)
+        groupDataWT = cbind(groupDataWT,rep("WT",ncol(WT_Data$F2)))
+        groupDataHT = t(HT_Data$F2)
+        groupDataHT = cbind(groupDataHT,rep("Mut",ncol(HT_Data$F2)))
+        
+      }
       
+      if (input$selectB == 3){
+        groupDataWT = t(WT_Data$F3)
+        groupDataWT = cbind(groupDataWT,rep("WT",ncol(WT_Data$F3)))
+        groupDataHT = t(HT_Data$F3)
+        groupDataHT = cbind(groupDataHT,rep("Mut",ncol(HT_Data$F3)))
+        
+      }
       
-      EntropyData = rbind(EntropyWTLM, EntropyHTLM)
-      Genotype = c(rep("WT",length(row.names(EntropyWTLM))),rep("Mut",length(row.names(EntropyHTLM))))
-      EntropyData = cbind(EntropyData, Genotype)
+      set.seed(7777)
       
-      b = Boruta(EntropyData[,1:4], EntropyData[,5])
-      outputBoruta = list(b = b, EntropyData = EntropyData)
+      print(groupDataHT)
       
-      return(outputBoruta)}
+      borutaTest = rbind.data.frame(groupDataHT,groupDataWT)
+      colnames(borutaTest)[ncol(borutaTest)] = "Group"
+      print(borutaTest)
+      
+      b = Boruta(Group~.,data=borutaTest,doTrace=2)
+    
+      return(b)}
     else(return(NULL))
     
   })
@@ -895,7 +915,7 @@ shinyServer(function(input, output, session) {
     if(!is.null(boruta())){
       calls.boruta = boruta()
       return(
-        plot(calls.boruta$b, colCode = c("darkseagreen4", "goldenrod1", "firebrick", "dodgerblue3")))
+        plot(calls.boruta, colCode = c("darkseagreen4", "goldenrod1", "firebrick", "dodgerblue3")))
       plotImpHistory(b, xlab = "Classifier run",
                      ylab = "Importance")
     }
@@ -917,7 +937,7 @@ shinyServer(function(input, output, session) {
   borutaOutcome = reactive({ 
     if(!is.null(boruta())){
       calls.boruta = boruta()
-      return(calls.boruta$b)
+      return(calls.boruta)
     }
     else(stop("Upload folder") )
     

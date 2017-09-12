@@ -109,7 +109,8 @@ tabPanel("Boruta - Random forest", tags$div(class="header", checked=NA,
                                                           size = "small", type = "action", block = FALSE, disabled = FALSE,
                                                           value = FALSE)
                                          )
-),plotOutput("borutaplot"),downloadButton('downloadborutaplot', 'Download Plot')
+),selectInput("selectB", label = h4("Select Entropy Level for Classification", bsTooltip("selectB", "The entropy level of the analysis should be chosen based on the linear model result found on the Linear Model Analysis tab.",                                                                                                                                     placement = "right", trigger = "hover")),
+             choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)),plotOutput("borutaplot"),downloadButton('downloadborutaplot', 'Download Plot')
 ,tags$hr(),verbatimTextOutput("boruta"),downloadButton('borutaOutcome', 'Download Boruta Outcome'))
       ))), 
 conditionalPanel(condition = "!output.setupComplete",
