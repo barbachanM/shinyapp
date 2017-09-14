@@ -1,6 +1,9 @@
 # install.packages("shinydashboard")
 # install.packages('shinyBS', dependencies=TRUE, repos='http://cran.rstudio.com/')
 # install.packages('shinyjs', dependencies=TRUE, repos='http://cran.rstudio.com/')
+
+
+library(devtools)
 library(hash)
 library(stringi)
 library(stringr)
@@ -563,31 +566,80 @@ shinyServer(function(input, output, session) {
     
     else(stop("Upload folder") )})
   
-  output$plot2 = renderPlot({ 
+  output$plot2 = renderPlot({
     if(!is.null(createMLEData())){
-      print(plot2())}
+      p = isolate(plot2())
+      print(p)}
   })
   
   output$downloadPlot2 <- downloadHandler(
-    filename = function() { "LinearModelBoxPlot.png" },
+    filename = function() { "EntropyAnalysis.png" },
     content = function(file) {
-      ggsave(file, plot = plot2(), device = "png")
+      ggsave(file, plot = isolate(plot2()), device = "png")
     })
+
+
+  # 
+  # output$downloadPlot2 <- downloadHandler(
+  #   filename = function() { "EntropyAnalysis.png" },
+  #   content = function(file) {
+  #     ggsave(file, plot = plot2(), device = "png")
+  #   })
+  # output$downloadPlot2 <- downloadHandler(
+  #   filename = function() { "LinearModelBoxPlot.png" },
+  #   content = function(file) {
+  #     ggsave(file, plot = plot2(), device = "png")
+  #   })
+  
+  
+  # 
+  # output$downloadPlot2 <- downloadHandler(
+  #   filename = function() {
+  #     "teste.pdf"
+  #   },
+  #   content = function(file) {
+  #     file.copy("teste.pdf", file, overwrite=TRUE)
+  #   }
+  # )
+  
+  # output$downloadPlot2 <- downloadHandler(
+  #   filename = function(){
+  #     paste("LME_boxplot-", Sys.Date(), ".png", sep = "")
+  #   },
+  #   content = function(file) {
+  #     png(file)
+  #     print(plot2())
+  #     dev.off()
+  #   })
   
   plot3 = reactive({if(!is.null(lmerAnalysis())){
     mle = isolate(lmerAnalysis())
     return({plot(mle)
     })}})
   output$plot3 = renderPlot({ 
-    print(plot3())
     
-  })
+      ggsave("LMER_Plot.png", isolate(plot3()))
+    plot3()
+    })
   
   output$downloadPlot3 <- downloadHandler(
-    filename = function() { "LMER_Plot.png" },
+    filename = function() {
+      "LMER_Plot.png"
+    },
     content = function(file) {
-      ggsave(file, plot = plot3(), device = "png")
-    })
+      file.copy("LMER_Plot.png", file, overwrite=TRUE)
+    }
+  )
+
+    
+  
+  # output$downloadPlot3 <- downloadHandler(
+  #   filename = function() { "LMER_Plot.png" },
+  #   content = function(file) {
+  #     png("LMER_Plot.png")
+  #     plot3()
+  #     dev.off()
+  #   })
   
   plot4 = reactive({if(!is.null(lmerAnalysis())){
     mle = isolate(lmerAnalysis())
@@ -616,11 +668,37 @@ shinyServer(function(input, output, session) {
       # mle = isolate(lmerAnalysis())
       return({summaryMLE()})}
   })
-  output$downloadData <- downloadHandler(
-    filename = function() { "LMER_Summary.txt" },
+
+  # output$downloadData <- downloadHandler(
+  #   filename = function(){
+  #     paste("LMER_Summary-", Sys.Date(), ".txt", sep = "")
+  #   },
+  #   content = function(file) {
+  #     writeLines(paste(summaryMLE(), sep = "\n"))
+  #   })
+  # 
+  
+  output$downloadData = downloadHandler(
+    filename = 'test.pdf',
     content = function(file) {
-      write.table(summaryMLE(), file)
+      print(summaryMLE())
+      dev.copy2pdf(file = file, width=12, height=8, out.type="pdf")
     })
+  
+
+  # 
+  # output$downloadData <- downloadHandler(
+  #   filename = function(){
+  #     paste("LMER_Summary-", Sys.Date(), ".png", sep = "")
+  #   },
+  #   content = function(file) {
+  #     
+  #     png(file)
+  #     summaryMLE()
+  #     dev.off()
+  #   })    
+  # 
+  # 
   
   plot5 = reactive({if(!is.null(EntropyAnalysisWT())){
     WT_Data = EntropyAnalysisWT()
@@ -718,7 +796,6 @@ shinyServer(function(input, output, session) {
       ggsave(file, plot = plot5(), device = "png")
     })
   
-  
   spls_DA = reactive({ 
     if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT()) & input$select != 0 & input$percentage != 0) {
       HT_Data = EntropyAnalysisHT()
@@ -728,7 +805,7 @@ shinyServer(function(input, output, session) {
         FreqDataFrame = cbind(WT_Data$F1, HT_Data$F1)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("Mut", ncol(HT_Data$F1)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F1)), rep("HT", ncol(HT_Data$F1)))))
         Calls = as.factor(alphabetH1)
         keepX = as.double(input$percentage)*nH1
       }
@@ -736,7 +813,7 @@ shinyServer(function(input, output, session) {
         FreqDataFrame = cbind(WT_Data$F2, HT_Data$F2)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("Mut", ncol(HT_Data$F2)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F2)), rep("HT", ncol(HT_Data$F2)))))
         Calls = as.factor(alphabetH2)
         keepX = as.double(input$percentage)*nH2
       }
@@ -745,7 +822,7 @@ shinyServer(function(input, output, session) {
         FreqDataFrame = cbind(WT_Data$F3, HT_Data$F3)
         tFreqDataFrame = t(FreqDataFrame)
         tFreqDataFrame[is.na(tFreqDataFrame)] <- 0
-        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("Mut", ncol(HT_Data$F3)))))
+        Genotype = as.factor(c(c(rep("WT", ncol(WT_Data$F3)), rep("HT", ncol(HT_Data$F3)))))
         Calls = as.factor(alphabetH3)
         keepX = as.double(input$percentage)*nH3
       }
@@ -772,8 +849,7 @@ shinyServer(function(input, output, session) {
     
   })
   output$plot7= renderPlot({ 
-    if(!is.null(spls_DA())){
-      print(plot7())}
+    print(plot7())
   })
   output$downloadPlot7 <- downloadHandler(
     filename = function() { "plotIndiv.png" },
@@ -792,8 +868,7 @@ shinyServer(function(input, output, session) {
   })
   
   output$plot8 = renderPlot({ 
-    if(!is.null(spls_DA())){
-      print(plot8())}
+    print(plot8())
   })
   output$downloadPlot8 <- downloadHandler(
     filename = function() { "plotVar.png" },
@@ -801,7 +876,6 @@ shinyServer(function(input, output, session) {
       ggsave(file, plot = plot8(), device = "png")
     })
   
-   
   ### Caret
   stepLDA = reactive({
       if(!is.null(EntropyAnalysisHT()) & !is.null(EntropyAnalysisWT())){
@@ -897,11 +971,11 @@ shinyServer(function(input, output, session) {
       
       set.seed(7777)
       
-      print(groupDataHT)
+      #print(groupDataHT)
       
       borutaTest = rbind.data.frame(groupDataHT,groupDataWT)
       colnames(borutaTest)[ncol(borutaTest)] = "Group"
-      print(borutaTest)
+      #print(borutaTest)
       
       b = Boruta(Group~.,data=borutaTest,doTrace=2)
     
@@ -929,9 +1003,10 @@ shinyServer(function(input, output, session) {
       print(borutaplot())}
   })
   output$downloadborutaplot <- downloadHandler(
-    filename = function() { "PerfCaret.png" },
+    filename = function() { "borutaPlot.png" },
     content = function(file) {
-      ggsave(file, plot = borutaplot(), device = "png")
+      #ggsave(file, plot = borutaplot(), device = "png")
+      ggsave(plot = plot(borutaplot()), "borutaPlot.png" , device = "png")
     })
 
   borutaOutcome = reactive({ 
@@ -947,10 +1022,13 @@ shinyServer(function(input, output, session) {
     if(!is.null(boruta())){
       print(borutaOutcome())}
   })
+  
   output$borutaOutcome <- downloadHandler(
-    filename = function() { "Boruta.txt" },
+    filename = function(){
+      paste("Boruta-", Sys.Date(), ".txt", sep = "")
+    },
     content = function(file) {
-      write.table(boruta(), file)
+      write.table(paste(print(borutaOutcome()),collapse=", "), file,col.names=FALSE)
     })
   
   
@@ -966,6 +1044,11 @@ shinyServer(function(input, output, session) {
   addPopover(session=session, id="help3", title="", 
              content="Sparse Partial Least Squares Determination Analysis is used to perform variable selection and classification in a one step procedure.", placement = "bottom",
              trigger = "click", options = NULL)
+  
+  addPopover(session=session, id="help4", title="", 
+             content="Feature selection algorithm using Random Forest classification. It iteratively removes features proved to be less relevant than random probes", placement = "bottom",
+             trigger = "click", options = NULL)
+  
   
   ## Button:
   

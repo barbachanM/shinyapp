@@ -41,14 +41,14 @@ dashboardPage(
                                                                       tags$p("Please upload WT folder")))),
               conditionalPanel(condition = "output.setupCompleteWT",tags$div(class="header", checked=NA,
                                                                            list(
-                                                                             tags$p("Uploaded!")))),
+                                                                             tags$p(style="color:lightgreen","Uploaded!")))),
       htmlOutput("directorypath2"),actionButton("goButton2","Upload"),
       conditionalPanel(condition = "!output.setupCompleteHT",tags$div(class="header", checked=NA,
                                                                       list(
                                                                         tags$p("Please upload Mut folder")))),
       conditionalPanel(condition = "output.setupCompleteHT",tags$div(class="header", checked=NA,
                                                                      list(
-                                                                       tags$p("Uploaded!"))))
+                                                                       tags$p(style="color:lightgreen","Uploaded!"))))
       #textOutput('directorypath2'), actionButton("goButton2","Upload")
     ),
 
