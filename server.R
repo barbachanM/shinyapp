@@ -616,23 +616,28 @@ shinyServer(function(input, output, session) {
     mle = isolate(lmerAnalysis())
     return({plot(mle)
     })}})
-  output$plot3 = renderPlot({ 
-    
-      ggsave("LMER_Plot.png", isolate(plot3()))
-    plot3()
-    })
+  output$plot3 = renderPlot({
+    if(!is.null(createMLEData())){
+      p = isolate(plot3())
+      print(p)}
+  })
   
-  output$downloadPlot3 <- downloadHandler(
-    filename = function() {
-      "LMER_Plot.png"
-    },
-    content = function(file) {
-      file.copy("LMER_Plot.png", file, overwrite=TRUE)
-    }
-  )
+  # output$downloadPlot3 <- downloadHandler(
+  #   filename = function() {
+  #     "LMER_Plot.png"
+  #   },
+  #   content = function(file) {
+  #     file.copy("LMER_Plot.png", file, overwrite=TRUE)
+  #   }
+  # )
 
-    
-  
+  output$downloadPlot3 <- downloadHandler(
+    filename = function() { "EntropyAnalysis.png" },
+    content = function(file) {
+      ggsave(file, plot = plot3(), device = "png")
+    })
+
+
   # output$downloadPlot3 <- downloadHandler(
   #   filename = function() { "LMER_Plot.png" },
   #   content = function(file) {
@@ -1030,6 +1035,34 @@ shinyServer(function(input, output, session) {
     content = function(file) {
       write.table(paste(print(borutaOutcome()),collapse=", "), file,col.names=FALSE)
     })
+  
+  
+  
+  borutaStats = reactive({ 
+    if(!is.null(boruta())){
+      calls.boruta = boruta()
+      stats = attStats(calls.boruta)
+    stats = subset(stats, decision == "Confirmed")
+      return(stats)
+    }
+    else(stop("Upload folder") )
+    
+  })
+  
+  output$bStats = renderPrint({ 
+    if(!is.null(boruta())){
+      print(borutaStats())}
+  })
+  
+  output$borutaStats <- downloadHandler(
+    filename = function(){
+      paste("Boruta-", Sys.Date(), ".txt", sep = "")
+    },
+    content = function(file) {
+      write.table(paste(print(borutaStats()),collapse=", "), file,col.names=FALSE)
+    })
+  
+  
   
   
   ### PopOvers:
