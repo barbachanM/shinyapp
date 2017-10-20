@@ -8,6 +8,7 @@ library(shinydashboard)
 library(shinyBS)
 library(shinyjs)
 
+
 useShinyjs() # Include shinyjs
 
 
@@ -21,7 +22,20 @@ dashboardPage(
                        
                        
                        
-                       hr()
+                    tags$p(),
+                    
+                    fileInput("fileAlphabet", "Choose Alphabet File",     accept = c(
+                      "text/csv",
+                      "text/comma-separated-values,text/plain",
+                      ".csv")
+                    
+                    ),
+ 
+                    
+                    tags$p(),
+                    
+                    textOutput("contents"),
+                    tags$hr()
                        #fluidRow(column(1, verbatimTextOutput("value")))
       
                     
@@ -70,14 +84,7 @@ dashboardPage(
 ,tags$hr()
 
 ), 
-        tabPanel("Markov Model Graphs", tags$div(class="header", checked=NA,
-                                                 
-                                                 tags$em(bsButton("help2","Info", icon = NULL, style = "inverse",
-                                                                  size = "small", type = "action", block = FALSE, disabled = FALSE,
-                                                                  value = FALSE)
-                                                 )
-        ),plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')
-,tags$hr(),plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot')),
+        
 #         tabPanel("MixOmics - sPLS-DA", tags$div(class="header", checked=NA,
 #                                                      
 #                                                      tags$em(bsButton("help3","Info", icon = NULL, style = "inverse",
@@ -110,10 +117,19 @@ tabPanel("Boruta - Random forest", tags$div(class="header", checked=NA,
                                                           value = FALSE)
                                          )
 ),selectInput("selectB", label = h4("Select Entropy Level for Classification", bsTooltip("selectB", "The entropy level of the analysis should be chosen based on the linear model result found on the Linear Model Analysis tab.",                                                                                                                                     placement = "right", trigger = "hover")),
-             choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3)),plotOutput("borutaplot"),downloadButton('downloadborutaplot', 'Download Plot')
+             choices = list("-" = 0, "H1" = 1, "H2" = 2, "H3" = 3, "H4" = 4)),plotOutput("borutaplot"),downloadButton('downloadborutaplot', 'Download Plot')
 ,tags$hr(),verbatimTextOutput("boruta"),downloadButton('borutaOutcome', 'Download Boruta Outcome')
-,tags$hr(),verbatimTextOutput("bStats"),downloadButton('borutaStats', 'Download Boruta Outcome'))
-      ))), 
+,tags$hr(),verbatimTextOutput("bStats"),downloadButton('borutaStats', 'Download Boruta Outcome')), tabPanel("Markov Model Graphs", tags$div(class="header", checked=NA,
+                                                                                                                                            
+                                                                                                                                            tags$em(bsButton("help2","Info", icon = NULL, style = "inverse",
+                                                                                                                                                             size = "small", type = "action", block = FALSE, disabled = FALSE,
+                                                                                                                                                             value = FALSE)
+                                                                                                                                            )
+),plotOutput("plot5"),downloadButton('downloadPlot5', 'Download Plot')
+,tags$hr(),plotOutput("plot6"),downloadButton('downloadPlot6', 'Download Plot'))
+      ))
+
+), 
 conditionalPanel(condition = "!output.setupComplete",
                  tags$div(class="header", checked=NA,
                           list(tags$hr(),

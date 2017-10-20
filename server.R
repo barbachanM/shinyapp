@@ -29,41 +29,98 @@ rv$setupCompleteWT <- FALSE
 rv$setupCompleteHT <- FALSE
 
 
-alphabetH1 = c('C','Cx','D','F','Fs','H','Ha','Sh','Ts','U')
-nH1 = length(alphabetH1)
-alphabetH2 = c()
-alphabetH3 = c()
-for (element in alphabetH1){
-  for (sElement in alphabetH1){
-    new = paste(element,sElement,sep = '\t')
-    #print(new)
-    alphabetH2 = c(alphabetH2, new)
-  }
-}
-nH2 = length(alphabetH2)
-for (element in alphabetH1){
-  for (tElement in alphabetH2){
-    new = paste(element,tElement,sep = '\t')
-    #print(new)
-    alphabetH3 = c(alphabetH3, new)
-  }
-}
-nH3 = length(alphabetH3)
+
+# for (element in alphabetH1){
+#   for (tElement in alphabetH2){
+#     new = paste(element,tElement,sep = '\t')
+#     #print(new)
+#     alphabetH3 = c(alphabetH3, new)
+#   }
+# }
+
 
 shinyServer(function(input, output, session) {
   volumes = getVolumes()
   
+  #### Call Aphabets ####
+
   
+  # for (element in alphabetH1){
+  #   for (sElement in alphabetH1){
+  #     new = paste(element,sElement,sep = '\t')
+  #     #print(new)
+  #     alphabetH2 = c(alphabetH2, new)
+  #   }
+  # }
+
+  ### 
   valuesF1 <- reactiveValues() 
   valuesF2 <- reactiveValues() 
   
   
+  # alphabetFromText = NULL
+  # alphabetFromText <- reactive({
+  #   inFile <- input$fileAlphabet
+  #   alphabet = read.csv(inFile$datapath, sep = ",")
+  #   
+  #   return(alphabet)
+  # })
+  # 
+  # alphabetH1 = isolate(alphabetFromText())
+  output$contents <- renderTable({
+    # input$file1 will be NULL initially. After the user selects
+    # and uploads a file, it will be a data frame with 'name',
+    # 'size', 'type', and 'datapath' columns. The 'datapath'
+    # column will contain the local filenames where the data can
+    # be found.
+    inFile <- input$fileAlphabet
+    
+    if (is.null(inFile))
+      return(NULL)
+    
+    read.csv(inFile$datapath, sep = ",")
+    
+  })
+  
+  alphabetH1 = c('C','Cx','D','F','Fs','H','Ha','Sh','Ts','U')
+  
+  
+  for (i in 2:4){
+    assign(paste("Alphabet.", i, sep = ""), permutations(n=length(alphabetH1),r=i,v=alphabetH1,repeats.allowed=T))
+    
+  }
+  alphabetH2 = c()
+  for(rowN in 1:nrow(Alphabet.2)){
+    alphabetH2 = c(alphabetH2, paste(Alphabet.2[rowN,], collapse="\t"))
+    
+  }
+  
+  alphabetH3 = c()
+  for(rowN in 1:nrow(Alphabet.3)){
+    alphabetH3 = c(alphabetH3, paste(Alphabet.3[rowN,], collapse="\t"))
+    
+  }
+
+  alphabetH4 = c()
+  for(rowN in 1:nrow(Alphabet.4)){
+    alphabetH4 = c(alphabetH4, paste(Alphabet.4[rowN,], collapse="\t"))
+    
+  }
+  
+  nH1 = length(alphabetH1)
+  nH2 = length(alphabetH2)
+  nH3 = length(alphabetH3)
+  nH4 = length(alphabetH4)
+  
+  
+  folderInput1 = NULL
   folderInput1 <- reactive({
     shinyDirChoose(input, 'directory', roots = volumes, session = session, 
                    restrictions = system.file(package = 'base'))
     return(parseDirPath(volumes, input$directory))
   })
   
+  folderInput2 = NULL
   folderInput2 <- reactive({
     shinyDirChoose(input, 'directory2', roots = volumes, session = session, 
                    restrictions = system.file(package = 'base'))
@@ -142,9 +199,9 @@ shinyServer(function(input, output, session) {
       lof1 =  isolate(files1())  
       nf1 = isolate(nFiles1())
       
-      df = data.frame(matrix(0,ncol = 4, nrow = nf1))
+      df = data.frame(matrix(0,ncol = 5, nrow = nf1))
       rownames(df) = lof1
-      colnames(df) = c("H0", "H1", "H2", "H3")
+      colnames(df) = c("H0", "H1", "H2", "H3","H4")
       
       C_2 = data.frame(matrix(0,ncol = nf1, nrow = nH2))
       rownames(C_2) = alphabetH2
@@ -162,7 +219,11 @@ shinyServer(function(input, output, session) {
       rownames(F_3) = alphabetH3
       colnames(F_3) = lof1
       
-      combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3)
+      F_4 = data.frame(matrix(0,ncol = nf1, nrow = nH4))
+      rownames(F_4) = alphabetH4
+      colnames(F_4) = lof1
+      
+      combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3, F_4 = F_4)
       
       
       
@@ -181,6 +242,9 @@ shinyServer(function(input, output, session) {
       F1 = isolate(data$F_1)
       F2 = isolate(data$F_2)
       F3 = isolate(data$F_3)
+      F4 = isolate(data$F_4)
+      
+      ### Progress Message ###
       withProgress(message = 'Uploading', value = 0, { 
         
         for(f in f1){
@@ -188,20 +252,23 @@ shinyServer(function(input, output, session) {
           
           fileIN = readLines(f)
           
-          EntropyHash = hash(keys = c('H1','H2','H3'))
+          EntropyHash = hash(keys = c('H1','H2','H3', 'H4'))
           EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          EntropyHash$H4 = hash(keys = alphabetH4, values = rep(0,nH4) )
           
-          CountHash = hash(keys = c('H1','H2','H3'))
+          CountHash = hash(keys = c('H1','H2','H3', 'H4'))
           CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
+          CountHash$H4 = hash(keys = alphabetH4,values = rep(0,nH4) )
           
-          ProbabilityHash = hash(keys = c('H1','H2','H3'))
+          ProbabilityHash = hash(keys = c('H1','H2','H3','H4'))
           ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          ProbabilityHash$H4 = hash(keys = alphabetH4, values = rep(0,nH4) )
           
           
           for (call in alphabetH1){
@@ -215,6 +282,12 @@ shinyServer(function(input, output, session) {
             values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
             
           }
+          for (call in alphabetH4){
+            values(CountHash$H4, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            
+          }
+          
+          
           
           totalH1 = sum(values(CountHash$H1))
           
@@ -232,6 +305,15 @@ shinyServer(function(input, output, session) {
             totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
           }
           names(totalH3) = alphabetH2
+          
+          z = split(seq(1:nH4), ceiling(seq_along(seq(1:nH4))/10))
+          totalH4 = c()
+          for(g in z){
+            totalH4 = c(totalH4, sum(values(CountHash$H4,keys = alphabetH4[g])))
+          }
+          names(totalH4) = alphabetH3
+          
+          
           h11 = 0
           for (call in alphabetH1){
             values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
@@ -273,14 +355,33 @@ shinyServer(function(input, output, session) {
             }
           }
           
+          h44 = 0
+          for (call in alphabetH4){
+            separate = unlist(strsplit(call,'\t', fixed=FALSE))
+            first = separate[1]
+            firstTwo = paste(separate[1],'\t',separate[2],sep='')
+            three =  paste(separate[1],'\t',separate[2],'\t',separate[3],sep='')
+            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/totalH4[three]
+            F4[f][call,] = values(ProbabilityHash$H4, keys= call)
+            # values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
+            values(EntropyHash$H4, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= three)*values(ProbabilityHash$H4, keys= call)*log2(values(ProbabilityHash$H4, keys= call))
+            if (!is.nan(values(EntropyHash$H4, keys= call))){
+              h44 = h44 + (as.double(values(EntropyHash$H4, keys= call)))}
+            else{
+              values(EntropyHash$H4, keys= call) = 0
+            }
+          }
+          
+          
           Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
           Entropy[f,"H1"] = h11
           Entropy[f,"H2"] = h22
           Entropy[f,"H3"] = h33
+          Entropy[f,"H4"] = h44
           
         }    }
       )
-      outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
+      outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3, F4=F4)
       return(outputData)}
     else(return(NULL))
   })
@@ -298,9 +399,9 @@ shinyServer(function(input, output, session) {
       lof2 =  isolate(files2())  
       nf2 = isolate(nFiles2())
       
-      df = data.frame(matrix(0,ncol = 4, nrow = nf2))
+      df = data.frame(matrix(0,ncol = 5, nrow = nf2))
       rownames(df) = lof2
-      colnames(df) = c("H0", "H1", "H2", "H3")
+      colnames(df) = c("H0", "H1", "H2", "H3", "H4")
       
       C_2 = data.frame(matrix(0,ncol = nf2, nrow = nH2))
       rownames(C_2) = alphabetH2
@@ -318,7 +419,11 @@ shinyServer(function(input, output, session) {
       rownames(F_3) = alphabetH3
       colnames(F_3) = lof2
       
-      combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3)
+      F_4 = data.frame(matrix(0,ncol = nf2, nrow = nH4))
+      rownames(F_4) = alphabetH4
+      colnames(F_4) = lof2
+      
+      combo = list(df = df,C_2 = C_2,F_1 = F_1, F_2 = F_2, F_3 = F_3, F_4=F_4)
       
       return(combo)
     }
@@ -335,6 +440,7 @@ shinyServer(function(input, output, session) {
       F1 = isolate(data$F_1)
       F2 = isolate(data$F_2)
       F3 = isolate(data$F_3)
+      F4 = isolate(data$F_4)
       withProgress(message = 'Uploading', value = 0, { 
         
         for(f in f1){
@@ -343,20 +449,23 @@ shinyServer(function(input, output, session) {
           
           fileIN = readLines(f)
           
-          EntropyHash = hash(keys = c('H1','H2','H3'))
+          EntropyHash = hash(keys = c('H1','H2','H3', 'H4'))
           EntropyHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           EntropyHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           EntropyHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          EntropyHash$H4 = hash(keys = alphabetH4, values = rep(0,nH4) )
           
-          CountHash = hash(keys = c('H1','H2','H3'))
+          CountHash = hash(keys = c('H1','H2','H3', 'H4'))
           CountHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           CountHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           CountHash$H3 = hash(keys = alphabetH3,values = rep(0,nH3) )
+          CountHash$H4 = hash(keys = alphabetH4,values = rep(0,nH4) )
           
-          ProbabilityHash = hash(keys = c('H1','H2','H3'))
+          ProbabilityHash = hash(keys = c('H1','H2','H3','H4'))
           ProbabilityHash$H1 = hash(keys = alphabetH1, values = rep(0,nH1))
           ProbabilityHash$H2 = hash(keys = alphabetH2,values = rep(0,nH2) )
           ProbabilityHash$H3 = hash(keys = alphabetH3, values = rep(0,nH3) )
+          ProbabilityHash$H4 = hash(keys = alphabetH4, values = rep(0,nH4) )
           
           
           for (call in alphabetH1){
@@ -368,6 +477,11 @@ shinyServer(function(input, output, session) {
           }
           for (call in alphabetH3){
             values(CountHash$H3, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
+            
+          }
+          
+          for (call in alphabetH4){
+            values(CountHash$H4, keys= call) = sum(stri_count_regex(fileIN, paste(call,"\t", sep="")))
             
           }
           
@@ -387,6 +501,15 @@ shinyServer(function(input, output, session) {
             totalH3 = c(totalH3, sum(values(CountHash$H3,keys = alphabetH3[g])))
           }
           names(totalH3) = alphabetH2
+          
+          z = split(seq(1:nH4), ceiling(seq_along(seq(1:nH4))/10))
+          totalH4 = c()
+          for(g in z){
+            totalH4 = c(totalH4, sum(values(CountHash$H4,keys = alphabetH4[g])))
+          }
+          names(totalH4) = alphabetH3
+          
+          
           h11 = 0
           for (call in alphabetH1){
             values(ProbabilityHash$H1, keys= call) = values(CountHash$H1, keys= call)/totalH1
@@ -428,14 +551,33 @@ shinyServer(function(input, output, session) {
             }
           }
           
+          h44 = 0
+          for (call in alphabetH4){
+            separate = unlist(strsplit(call,'\t', fixed=FALSE))
+            first = separate[1]
+            firstTwo = paste(separate[1],'\t',separate[2],sep='')
+            three = paste(separate[1],'\t',separate[2],'\t',separate[3],sep='')
+            values(ProbabilityHash$H4, keys= call) = values(CountHash$H4, keys= call)/totalH4[three]
+            F4[f][call,] = values(ProbabilityHash$H4, keys= call)
+            #values(ProbabilityHashHT$H3, keys= call) = c(values(ProbabilityHashHT$H3, keys= call),values(CountHash$H3, keys= call)/totalH3[firstTwo])
+            values(EntropyHash$H4, keys= call) = -1*values(ProbabilityHash$H1, keys= first)*values(ProbabilityHash$H2, keys= firstTwo)*values(ProbabilityHash$H3, keys= three)*values(ProbabilityHash$H4, keys= call)*log2(values(ProbabilityHash$H4, keys= call))
+            if (!is.nan(values(EntropyHash$H4, keys= call))){
+              h44 = h44 + (as.double(values(EntropyHash$H4, keys= call)))}
+            else{
+              values(EntropyHash$H4, keys= call) = 0
+            }
+          }
+          
+          
           Entropy[f,"H0"] = log2(length(which(values(EntropyHash$H1)!=0)))
           Entropy[f,"H1"] = h11
           Entropy[f,"H2"] = h22
           Entropy[f,"H3"] = h33
+          Entropy[f,"H4"] = h44
           
         }
       })
-      outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3)
+      outputData = list(Entropy = Entropy, Counts2 = Counts2, F1=F1, F2 = F2, F3=F3, F4=F4)
       return(outputData)}
     else(return(NULL))
   })
@@ -463,8 +605,8 @@ shinyServer(function(input, output, session) {
       WT = colMeans(EntropyWTLM)
       
       dataEntropy = data.frame(
-        Group = factor(c(rep("Mut",4),c(rep("WT",4)))),
-        Level = factor(c("H0","H1","H2","H3","H0","H1","H2","H3"), levels=c("H0","H1","H2","H3")),
+        Group = factor(c(rep("Mut",5),c(rep("WT",5)))),
+        Level = factor(c("H0","H1","H2","H3","H4","H0","H1","H2","H3","H4"), levels=c("H0","H1","H2","H3","H4")),
         Entropy = c(Mut,WT))
       
       
@@ -513,11 +655,11 @@ shinyServer(function(input, output, session) {
         # m2 = substr(n,9,12)
         mouseData = data.frame(Mouse = c(rep(n,4)),
                                Entropy = c(EntropyData[n,"H0"],EntropyData[n,"H1"],
-                                           EntropyData[n,"H2"],EntropyData[n,"H3"]),
-                               Level = factor(c("H0","H1","H2","H3")),
+                                           EntropyData[n,"H2"],EntropyData[n,"H3"],EntropyData[n,"H4"]),
+                               Level = factor(c("H0","H1","H2","H3","H4")),
                                Genotype = {
-                                 if(EntropyData[n,"Genotype"] == "WT"){Genotype = c(rep("WT",4))}
-                                 else{Genotype = c(rep("Mut",4))}}
+                                 if(EntropyData[n,"Genotype"] == "WT"){Genotype = c(rep("WT",5))}
+                                 else{Genotype = c(rep("Mut",5))}}
         )
         
         MLEData = rbind.data.frame(MLEData,mouseData)
@@ -527,9 +669,9 @@ shinyServer(function(input, output, session) {
         #m2 = substr(n,9,12)
         mouseData = data.frame(Mouse = c(rep(n,4)),
                                Entropy = c(EntropyData[n,"H0"],EntropyData[n,"H1"],
-                                           EntropyData[n,"H2"],EntropyData[n,"H3"]),
-                               Level = factor(c("H0","H1","H2","H3")),
-                               Genotype = c(rep(EntropyData[n,"Genotype"],4)))
+                                           EntropyData[n,"H2"],EntropyData[n,"H3"],EntropyData[n,"H4"]),
+                               Level = factor(c("H0","H1","H2","H3","H4")),
+                               Genotype = c(rep(EntropyData[n,"Genotype"],5)))
         
         MLEData = rbind.data.frame(MLEData,mouseData)
         
@@ -974,15 +1116,24 @@ shinyServer(function(input, output, session) {
         
       }
       
+      if (input$selectB == 4){
+        groupDataWT = t(WT_Data$F4)
+        groupDataWT = cbind(groupDataWT,rep("WT",ncol(WT_Data$F4)))
+        groupDataHT = t(HT_Data$F4)
+        groupDataHT = cbind(groupDataHT,rep("Mut",ncol(HT_Data$F4)))
+        
+      }
+      
+      
       set.seed(7777)
       
       #print(groupDataHT)
       
-      borutaTest = rbind.data.frame(groupDataHT,groupDataWT)
-      colnames(borutaTest)[ncol(borutaTest)] = "Group"
+      borutaDF = rbind.data.frame(groupDataHT,groupDataWT)
+      colnames(borutaDF)[ncol(borutaDF)] = "Group"
       #print(borutaTest)
       
-      b = Boruta(Group~.,data=borutaTest,doTrace=2)
+      b = Boruta(Group~.,data=borutaDF,pValue = 0.001)
     
       return(b)}
     else(return(NULL))
@@ -1025,6 +1176,8 @@ shinyServer(function(input, output, session) {
   
   output$boruta = renderPrint({ 
     if(!is.null(boruta())){
+      calls.boruta = boruta()
+      print(calls.boruta$call)
       print(borutaOutcome())}
   })
   
@@ -1051,6 +1204,7 @@ shinyServer(function(input, output, session) {
   
   output$bStats = renderPrint({ 
     if(!is.null(boruta())){
+     
       print(borutaStats())}
   })
   
